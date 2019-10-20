@@ -1,3 +1,4 @@
+using System.Linq;
 using Rhino.Etl.Core.Logging;
 
 namespace Rhino.Etl.Core
@@ -28,12 +29,19 @@ namespace Rhino.Etl.Core
         /// <param name="exception">The exception.</param>
         /// <param name="format">The format.</param>
         /// <param name="args">The args.</param>
-        protected void Error(Exception exception, string format, params object[] args)
+        protected void Error(Exception exception, string format, params Tuple<string, object>[] args)
         {
-            errors.Add(exception);
+            string logtemplate = string.Format(CultureInfo.InvariantCulture, format, args.Select(a => "{"+ a.Item1+ "}").ToArray());
+            string message = string.Format(CultureInfo.InvariantCulture, format, args.Select(a => a.Item2).ToArray());
+            string errorMessage;
+            if (exception != null)
+                errorMessage = string.Format("{0}: {1}", message, exception.Message);
+            else
+                errorMessage = message.ToString();
+            errors.Add(new RhinoEtlException(errorMessage, exception));
             if (log.IsErrorEnabled())
             {
-                log.ErrorException(format, exception, args);
+                log.ErrorException(logtemplate, exception, args.Select(a => a.Item2).ToArray());
             }
         }
 

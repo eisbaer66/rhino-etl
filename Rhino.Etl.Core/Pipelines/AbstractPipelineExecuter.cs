@@ -35,12 +35,12 @@ namespace Rhino.Etl.Core.Pipelines
                 }
                 catch (Exception e)
                 {
-                    Error(e, "Failed to execute pipeline {PipelineName}", pipelineName);
+                    Error(e, "Failed to execute pipeline {0}", new Tuple<string, object>("PipelineName", pipelineName));
                 }
             }
             catch (Exception e)
             {
-                Error(e, "Failed to create pipeline {PipelineName}", pipelineName);                
+                Error(e, "Failed to create pipeline {0}", new Tuple<string, object>("PipelineName", pipelineName));                
             }
 
             DisposeAllOperations(pipeline);
@@ -106,7 +106,7 @@ namespace Rhino.Etl.Core.Pipelines
             }
             catch (Exception e)
             {
-                Error(e, "Failed to execute operation {@Row}", enumerator.Current);
+                Error(e, "Failed to execute operation {0}", new Tuple<string, object>("@Row", enumerator.Current));
             }
         }
 
@@ -124,7 +124,7 @@ namespace Rhino.Etl.Core.Pipelines
                 }
                 catch (Exception e)
                 {
-                    Error(e, "Failed to disposed {OperationName}", operation.Name);
+                    Error(e, "Failed to disposed {0}", new Tuple<string, object>("OperationName", operation.Name));
                 }
             }
         }
