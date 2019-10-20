@@ -30,7 +30,7 @@ namespace Rhino.Etl.Core.Pipelines
                 }
                 catch (Exception e)
                 {
-                    Error(e, "Failed to execute operation {0}", operation);
+                    Error(e, "Failed to execute operation {Operation}", operation);
                     threadedEnumerator.MarkAsFinished();
 #if DEBUG
                     throw e;

@@ -5,16 +5,18 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{D087E051-C099-468D-A3E7-4567DBBDFE69}</ProjectGuid>
+    <ProjectGuid>{0B6A574C-F369-4695-9306-F1A01C59FC89}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Rhino.Etl.Dsl</RootNamespace>
-    <AssemblyName>Rhino.Etl.Dsl</AssemblyName>
+    <RootNamespace>Rhino.Etl.Bootstrap</RootNamespace>
+    <AssemblyName>Rhino.Etl.Bootstrap</AssemblyName>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <OldToolsVersion>3.5</OldToolsVersion>
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -27,10 +29,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -41,8 +41,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DocumentationFile>Rhino.Etl.Dsl.XML</DocumentationFile>
     <NoWarn>1607</NoWarn>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
@@ -53,8 +51,10 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>Rhino.Etl.Dsl.XML</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Boo.Lang">
@@ -63,9 +63,10 @@
     <Reference Include="Boo.Lang.Compiler">
       <HintPath>..\SharedLibs\Boo\Boo.Lang.Compiler.dll</HintPath>
     </Reference>
-    <Reference Include="Boo.Lang.Parser">
-      <HintPath>..\SharedLibs\Boo\Boo.Lang.Parser.dll</HintPath>
+    <Reference Include="Boo.Lang.Useful">
+      <HintPath>..\SharedLibs\Boo\Boo.Lang.Useful.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Rhino.DSL">
       <HintPath>..\SharedLibs\Rhino.Dsl\Rhino.DSL.dll</HintPath>
     </Reference>
@@ -77,38 +78,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CompilerSteps\UseModuleNameAsNamespaceIfMissing.cs" />
-    <Compile Include="CompilerSteps\CorrelateTypesToModuleName.cs" />
-    <Compile Include="EtlDslEngine.cs" />
-    <Compile Include="Macros\AbstractChildMacro.cs" />
-    <Compile Include="Macros\AbstractClassGeneratorMacro.cs" />
-    <Compile Include="Macros\AccumulateMacro.cs" />
-    <Compile Include="Macros\ActionMacro.cs" />
-    <Compile Include="Macros\AggregateMacro.cs" />
-    <Compile Include="Macros\FinishedProcessingMacro.cs" />
-    <Compile Include="Macros\FullJoinMacro.cs" />
-    <Compile Include="Macros\GroupByMacro.cs" />
-    <Compile Include="Macros\HashJoinMacro.cs" />
-    <Compile Include="Macros\InnerJoinMacro.cs" />
-    <Compile Include="Macros\InputMacro.cs" />
-    <Compile Include="Macros\JoinMacro.cs" />
-    <Compile Include="Macros\JoinSectionMacro.cs" />
-    <Compile Include="Macros\LeftJoinMacro.cs" />
-    <Compile Include="Macros\LeftMacro.cs" />
-    <Compile Include="Macros\OnMacro.cs" />
-    <Compile Include="Macros\OperationMacro.cs" />
-    <Compile Include="Macros\OutputMacro.cs" />
-    <Compile Include="Macros\ProcessMacro.cs" />
-    <Compile Include="Macros\RightJoinMacro.cs" />
-    <Compile Include="Macros\RightMacro.cs" />
-    <Compile Include="Macros\RowProcessedMacro.cs" />
-    <Compile Include="Macros\SqlBulkInsertMacro.cs" />
-    <Compile Include="Macros\TerminateMacro.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Rhino.Etl.Core\Rhino.Etl.Core.csproj">
       <Project>{DC42946E-5972-411C-A061-F2932E49C31F}</Project>
       <Name>Rhino.Etl.Core</Name>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\Rhino.Etl.Dsl\Rhino.Etl.Dsl.csproj">
+      <Project>{D087E051-C099-468D-A3E7-4567DBBDFE69}</Project>
+      <Name>Rhino.Etl.Dsl</Name>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
@@ -116,6 +93,11 @@
     <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
   </ItemGroup>
   <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Framework.2.0">
       <Visible>False</Visible>
       <ProductName>.NET Framework 2.0 %28x86%29</ProductName>
@@ -131,9 +113,23 @@
       <ProductName>.NET Framework 3.5</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="App_Packages\LibLog.4.2\LibLog.cs" />
+    <Compile Include="RhinoEtlCommandLineOptions.cs" />
+    <Compile Include="RhinoEtlRunner.cs" />
+    <Compile Include="RhinoEtlSetup.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

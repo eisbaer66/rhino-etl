@@ -25,7 +25,7 @@ namespace Rhino.Etl.Core
             get { return pipelineExecuter; }
             set
             {
-                Info("Setting PipelineExecutor to {0}", value.GetType().ToString());
+                Info("Setting PipelineExecutor to {PipelineExecutor}", value.GetType().ToString());
                 pipelineExecuter = value;
             }
         }
@@ -72,7 +72,7 @@ namespace Rhino.Etl.Core
             Initialize();
             MergeLastOperationsToOperations();
             RegisterToOperationsEvents();
-            Trace("Starting to execute {0}", Name);
+            Trace("Starting to execute {ProcessName}", Name);
             PipelineExecuter.Execute(Name, operations, TranslateRows);
 
             PostProcessing();
@@ -102,7 +102,7 @@ namespace Rhino.Etl.Core
         /// <param name="op">The op.</param>
         protected virtual void OnFinishedProcessing(IOperation op)
         {
-            Trace("Finished {0}: {1}", op.Name, op.Statistics);
+            Trace("Finished {OperationName}: {@Statistics}", op.Name, op.Statistics);
         }
 
         /// <summary>
@@ -120,9 +120,9 @@ namespace Rhino.Etl.Core
         protected virtual void OnRowProcessed(IOperation op, Row dictionary)
         {
             if (op.Statistics.OutputtedRows % 1000 == 0)
-                Info("Processed {0} rows in {1}", op.Statistics.OutputtedRows, op.Name);
+                Info("Processed {CountOfOutputtedRows} rows in {OperationName}", op.Statistics.OutputtedRows, op.Name);
             else
-                Debug("Processed {0} rows in {1}", op.Statistics.OutputtedRows, op.Name);
+                Debug("Processed {CountOfOutputtedRows} rows in {OperationName}", op.Statistics.OutputtedRows, op.Name);
         }
 
         /// <summary>

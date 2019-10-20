@@ -1,44 +1,28 @@
-namespace Rhino.Etl.Cmd
+namespace Rhino.Etl.Bootstrap
 {
     using System;
-    using System.IO;
-    using Common.Logging.Configuration;
-    using Common.Logging.Log4Net;
     using Core;
-    using log4net;
-    using log4net.Config;
+    using Logging;
 
     public class RhinoEtlRunner : MarshalByRefObject
     {
-        private readonly ILog log = LogManager.GetLogger(typeof (RhinoEtlRunner));
+        private readonly ILog log = LogProvider.GetCurrentClassLogger();
 
-        public static void SetupLogging(bool verbose)
-        {
-            Common.Logging.LogManager.Adapter = new Log4NetLoggerFactoryAdapter(new NameValueCollection());
-
-            string configurationName = "Rhino.Etl.Cmd.standard.log4net.config";
-            if (verbose)
-                configurationName = "Rhino.Etl.Cmd.verbose.log4net.config";
-            using (Stream stream = typeof(RhinoEtlSetup).Assembly.GetManifestResourceStream(configurationName))
-                XmlConfigurator.Configure(stream);
-        }
-
-        public void Start(Type type, bool verboseLogging)
+        public void Start(Type type, bool verboseLogging, Action<bool> setupLogging)
         {
             try
             {
-                SetupLogging(verboseLogging);
+                setupLogging(verboseLogging);
                 EtlProcess process = (EtlProcess)Activator.CreateInstance(type);
                 process.Execute();
                 foreach (Exception error in process.GetAllErrors())
                 {
-                    log.Debug(error);
-                    log.Error(error.Message);
+                    log.ErrorException(error.Message, error);
                 }
             }
             catch (Exception e)
             {
-                log.Error(e);
+                log.ErrorException(e.Message, e);
             }
         }
     }

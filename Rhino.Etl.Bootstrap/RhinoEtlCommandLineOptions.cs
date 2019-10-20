@@ -1,4 +1,4 @@
-namespace Rhino.Etl.Cmd
+namespace Rhino.Etl.Bootstrap
 {
     using System;
     using Boo.Lang.Useful.CommandLine;

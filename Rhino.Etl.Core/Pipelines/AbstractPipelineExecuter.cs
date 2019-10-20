@@ -31,17 +31,16 @@ namespace Rhino.Etl.Core.Pipelines
                     DateTime start = DateTime.Now;
                     ExecutePipeline(enumerablePipeline);
                     raiseNotifyExecutionCompleting();
-                    Trace("Completed process {0} in {1}", pipelineName, DateTime.Now - start);
+                    Trace("Completed process {PipelineName} in {ExecutionTime}", pipelineName, DateTime.Now - start);
                 }
                 catch (Exception e)
                 {
-                    string errorMessage = string.Format("Failed to execute pipeline {0}", pipelineName);
-                    Error(e, errorMessage);
+                    Error(e, "Failed to execute pipeline {PipelineName}", pipelineName);
                 }
             }
             catch (Exception e)
             {
-                Error(e, "Failed to create pipeline {0}", pipelineName);                
+                Error(e, "Failed to create pipeline {PipelineName}", pipelineName);                
             }
 
             DisposeAllOperations(pipeline);
@@ -107,7 +106,7 @@ namespace Rhino.Etl.Core.Pipelines
             }
             catch (Exception e)
             {
-                Error(e, "Failed to execute operation {0}", enumerator.Current);
+                Error(e, "Failed to execute operation {@Row}", enumerator.Current);
             }
         }
 
@@ -125,7 +124,7 @@ namespace Rhino.Etl.Core.Pipelines
                 }
                 catch (Exception e)
                 {
-                    Error(e, "Failed to disposed {0}", operation.Name);
+                    Error(e, "Failed to disposed {OperationName}", operation.Name);
                 }
             }
         }

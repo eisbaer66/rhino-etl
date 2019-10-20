@@ -79,25 +79,25 @@ namespace Rhino.Etl.Core.Operations
                     commandSet.Append(command);
                     if (commandSet.CountOfCommands >= batchSize)
                     {
-                        Debug("Executing batch of {0} commands", commandSet.CountOfCommands);
+                        Debug("Executing batch of {CountOfCommands} commands", commandSet.CountOfCommands);
                         commandSet.ExecuteNonQuery();
                         CreateCommandSet(connection, transaction, ref commandSet, timeout);
                     }
                 }
-                Debug("Executing final batch of {0} commands", commandSet.CountOfCommands);
+                Debug("Executing final batch of {CountOfCommands} commands", commandSet.CountOfCommands);
                 commandSet.ExecuteNonQuery();
 
                 if (PipelineExecuter.HasErrors)
                 {
-                    Warn(null, "Rolling back transaction in {0}", Name);
+                    Warn(null, "Rolling back transaction in {OperationName}", Name);
                     if (transaction != null) transaction.Rollback();
-                    Warn(null, "Rolled back transaction in {0}", Name);
+                    Warn(null, "Rolled back transaction in {OperationName}", Name);
                 }
                 else
                 {
-                    Debug("Committing {0}", Name);
+                    Debug("Committing {OperationName}", Name);
                     if (transaction != null) transaction.Commit();
-                    Debug("Committed {0}", Name);
+                    Debug("Committed {OperationName}", Name);
                 }                    
 
             }

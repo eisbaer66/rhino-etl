@@ -242,15 +242,15 @@ namespace Rhino.Etl.Core.Operations
 
                 if (PipelineExecuter.HasErrors)
                 {
-                    Warn("Rolling back transaction in {0}", Name);
+                    Warn("Rolling back transaction in {OperationName}", Name);
                     if (transaction != null) transaction.Rollback();
-                    Warn("Rolled back transaction in {0}", Name);
+                    Warn("Rolled back transaction in {OperationName}", Name);
                 }
                 else
                 {
-                    Debug("Committing {0}", Name);
+                    Debug("Committing {OperationName}", Name);
                     if (transaction != null) transaction.Commit();
-                    Debug("Committed {0}", Name);
+                    Debug("Committed {OperationName}", Name);
                 }
             }
             yield break;
@@ -261,7 +261,7 @@ namespace Rhino.Etl.Core.Operations
         ///    </summary>
         protected virtual void onSqlRowsCopied(object sender, SqlRowsCopiedEventArgs e)
         {
-            Debug("{0} rows    copied to database", e.RowsCopied);
+            Debug("{RowsCopied} rows    copied to database", e.RowsCopied);
         }
 
         ///    <summary>

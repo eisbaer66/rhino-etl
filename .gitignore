@@ -16,3 +16,5 @@ Rhino.Etl.nuspec
 /Rhino-Etl-Cmd.nuspec
 Tools/xUnit/Aggregate.*
 Tools/xUnit/users.txt
+/.vs/
+/packages

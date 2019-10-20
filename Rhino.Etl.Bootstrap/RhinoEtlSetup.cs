@@ -1,67 +1,57 @@
-namespace Rhino.Etl.Cmd
+namespace Rhino.Etl.Bootstrap
 {
     using System;
     using System.IO;
     using System.Reflection;
     using Boo.Lang.Useful.CommandLine;
     using Core;
-    using log4net;
-    using log4net.Config;
     using Dsl;
+    using Logging;
 
     public class RhinoEtlSetup
     {
-        private readonly ILog log = LogManager.GetLogger(typeof(RhinoEtlSetup));
+        private readonly ILog log = LogProvider.GetCurrentClassLogger();
+        private readonly Action<bool> setupLogging;
 
-
-        private static void Main(string[] args)
+        public RhinoEtlSetup(Action<bool> setupLogging)
         {
-            try
-            {
-                RhinoEtlCommandLineOptions options = new RhinoEtlCommandLineOptions();
-                try
-                {
-                    options.Parse(args);
-                }
-                catch (CommandLineException e)
-                {
-                    Console.WriteLine(e.Message);
-                    options.PrintOptions();
-                    return;
-                }
-                new RhinoEtlSetup().Execute(options);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
+            this.setupLogging = setupLogging ?? throw new ArgumentNullException(nameof(setupLogging));
         }
 
-        private void Execute(RhinoEtlCommandLineOptions options)
-        {
-            RhinoEtlRunner.SetupLogging(options.Verbose);
 
-            log.DebugFormat("Starting with {0}", options.File);
+        public void Execute(string[] args)
+        {
+            RhinoEtlCommandLineOptions options = new RhinoEtlCommandLineOptions();
             try
             {
-                string ext = Path.GetExtension(options.File).ToLower();
-                Type processType;
-                if(ext==".exe" || ext==".dll")
-                {
-                    processType = GetFromAssembly(options);
-                }
-                else
-                {
-                    processType = GetFromDslFile(options.File);
-                }
-
-                ExecuteProcessInSeparateAppDomain(processType, options);
+                options.Parse(args);
             }
-            catch (Exception e)
+            catch (CommandLineException e)
             {
-                log.Debug(e);
-                log.Error(e.Message);
+                Console.WriteLine(e.Message);
+                options.PrintOptions();
+                return;
             }
+            Execute(options);
+        }
+
+        public void Execute(RhinoEtlCommandLineOptions options)
+        {
+            setupLogging(options.Verbose);
+
+            log.DebugFormat("Starting with {OptionsFile}", options.File);
+            string ext = Path.GetExtension(options.File).ToLower();
+            Type processType;
+            if(ext==".exe" || ext==".dll")
+            {
+                processType = GetFromAssembly(options);
+            }
+            else
+            {
+                processType = GetFromDslFile(options.File);
+            }
+
+            ExecuteProcessInSeparateAppDomain(processType, options);
         }
 
         private static Type GetFromAssembly(RhinoEtlCommandLineOptions options)
@@ -101,12 +91,11 @@ namespace Rhino.Etl.Cmd
                 appDomain.Load(processType.Assembly.GetName());
                 RhinoEtlRunner runner = (RhinoEtlRunner)appDomain.CreateInstanceAndUnwrap(typeof (RhinoEtlRunner).Assembly.GetName().FullName,
                                                                                           typeof (RhinoEtlRunner).FullName);
-                runner.Start(processType, options.Verbose);
+                runner.Start(processType, options.Verbose, setupLogging);
             }
             catch (Exception e)
             {
-                log.Debug(e);
-                log.Error(e.Message);
+                log.ErrorException(e.Message, e);
             }
         }
 
