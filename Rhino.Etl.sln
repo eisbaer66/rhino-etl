@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Cmd", "Rhino.Etl.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Bootstrap", "Rhino.Etl.Bootstrap\Rhino.Etl.Bootstrap.csproj", "{0B6A574C-F369-4695-9306-F1A01C59FC89}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.ExternalOperations", "Rhino.Etl.ExternalOperations\Rhino.Etl.ExternalOperations.csproj", "{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

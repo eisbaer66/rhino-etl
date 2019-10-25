@@ -129,6 +129,7 @@
     <Compile Include="Branches\SingleThreadedFibonacciBranchingProcess.cs" />
     <Compile Include="Branches\BranchingOperationFixture.cs" />
     <Compile Include="Branches\BranchingOperationProcess.cs" />
+    <Compile Include="Dsl\ImportFixture.cs" />
     <Compile Include="Dsl\AggregationFixture.cs" />
     <Compile Include="Dsl\HashJoinFixture.cs" />
     <Compile Include="Dsl\DatabaseToDatabaseWithTransformFixture.cs">
@@ -238,6 +239,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Content Include="Dsl\Import.boo">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="Dsl\InnerJoin.boo">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -276,6 +280,9 @@
     <None Include="Dsl\InputTimeout.boo">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="Rhino.Etl.ExternalOperations.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Dsl\WireOnFinishedProcessingEvent.boo">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
