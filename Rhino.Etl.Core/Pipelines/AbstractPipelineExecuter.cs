@@ -1,3 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Pipelines
 {
     using System;
@@ -18,18 +22,20 @@ namespace Rhino.Etl.Core.Pipelines
         /// <param name="pipelineName">The name.</param>
         /// <param name="pipeline">The pipeline.</param>
         /// <param name="translateRows">Translate the rows into another representation</param>
-        public void Execute(string pipelineName,
-                            ICollection<IOperation> pipeline,
-                            Func<IEnumerable<Row>, IEnumerable<Row>> translateRows)
+        /// <param name="cancellationToken"></param>
+        public async Task Execute(string pipelineName,
+            ICollection<IOperation> pipeline,
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateRows,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                IEnumerable<Row> enumerablePipeline = PipelineToEnumerable(pipeline, new List<Row>(), translateRows);
+                IAsyncEnumerable<Row> enumerablePipeline = PipelineToEnumerable(pipeline, new List<Row>().ToAsyncEnumerable(), translateRows);
                 try
                 {
                     raiseNotifyExecutionStarting();
                     DateTime start = DateTime.Now;
-                    ExecutePipeline(enumerablePipeline);
+                    await ExecutePipeline(enumerablePipeline, cancellationToken);
                     raiseNotifyExecutionCompleting();
                     Trace("Completed process {PipelineName} in {ExecutionTime}", pipelineName, DateTime.Now - start);
                 }
@@ -53,10 +59,10 @@ namespace Rhino.Etl.Core.Pipelines
         /// <param name="rows">The rows</param>
         /// <param name="translateEnumerable">Translate the rows from one representation to another</param>
         /// <returns></returns>
-        public virtual IEnumerable<Row> PipelineToEnumerable(
-            ICollection<IOperation> pipeline, 
-            IEnumerable<Row> rows,
-            Func<IEnumerable<Row>, IEnumerable<Row>> translateEnumerable)
+        public virtual IAsyncEnumerable<Row> PipelineToEnumerable(
+            ICollection<IOperation> pipeline,
+            IAsyncEnumerable<Row> rows,
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable)
         {
             foreach (var operation in pipeline)
             {
@@ -95,13 +101,14 @@ namespace Rhino.Etl.Core.Pipelines
         /// Since we use a pipeline, we need to force it to execute at some point. 
         /// We aren't really interested in the result, just in that the pipeline would execute.
         /// </summary>
-        protected virtual void ExecutePipeline(IEnumerable<Row> pipeline)
+        protected virtual async Task ExecutePipeline(IAsyncEnumerable<Row> pipeline,
+            CancellationToken cancellationToken = default)
         {
-            var enumerator = pipeline.GetEnumerator();
+            var enumerator = pipeline.GetAsyncEnumerator(cancellationToken);
             try
             {
 #pragma warning disable 642
-                while (enumerator.MoveNext()) ;
+                while (await enumerator.MoveNextAsync()) ;
 #pragma warning restore 642
             }
             catch (Exception e)
@@ -160,6 +167,6 @@ namespace Rhino.Etl.Core.Pipelines
         /// </summary>
         /// <param name="operation">The operation.</param>
         /// <param name="enumerator">The enumerator.</param>
-        protected abstract IEnumerable<Row> DecorateEnumerableForExecution(IOperation operation, IEnumerable<Row> enumerator);
+        protected abstract IAsyncEnumerable<Row> DecorateEnumerableForExecution(IOperation operation, IAsyncEnumerable<Row> enumerator);
     }
 }

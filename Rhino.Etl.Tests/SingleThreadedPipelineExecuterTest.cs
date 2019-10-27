@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Xunit;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
@@ -15,7 +17,7 @@ namespace Rhino.Etl.Tests
     public class SingleThreadedPipelineExecuterTest
     {
         [Fact]
-        public void OperationsAreExecutedOnce()
+        public async Task OperationsAreExecutedOnce()
         {
             var iterations = 0;
             
@@ -29,14 +31,14 @@ namespace Rhino.Etl.Tests
                 stubProcess.Register(new InputSpyOperation(() => iterations++));
                 stubProcess.Register(new OutputSpyOperation(2));
 
-                stubProcess.Execute();
+                await stubProcess.Execute();
             }
 
             Assert.Equal(1, iterations);
         }
 
         [Fact]
-        public void MultipleIterationsYieldSameResults()
+        public async Task MultipleIterationsYieldSameResults()
         {
             var accumulator = new ArrayList();
 
@@ -50,7 +52,7 @@ namespace Rhino.Etl.Tests
                 process.Register(new GenericEnumerableOperation(new[] {Row.FromObject(new {Prop = "Hello"})}));
                 process.Register(new OutputSpyOperation(2, r => accumulator.Add(r["Prop"])));
 
-                process.Execute();
+                await process.Execute();
             }
 
             Assert.Equal(accumulator.Cast<string>().ToArray(), Enumerable.Repeat("Hello", 2).ToArray());
@@ -65,10 +67,13 @@ namespace Rhino.Etl.Tests
                 this.onExecute = onExecute;
             }
 
-            public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
             {
-                onExecute();
-                yield break;
+                return new AsyncEnumerable<Row>(yield =>
+                {
+                    onExecute(); 
+                    return Task.CompletedTask;
+                });
             }
         }
 
@@ -86,13 +91,15 @@ namespace Rhino.Etl.Tests
                 this.onRow = onRow;
             }
 
-            public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
             {
-                for (var i = 0; i < numberOfIterations; i++)
-                    foreach (var row in rows)
-                        onRow(row);
+                return new AsyncEnumerable<Row>(async yield =>
+                {
+                    for (var i = 0; i < numberOfIterations; i++)
+                        await rows.ForEachAsync(r => onRow(r));
 
-                yield break;
+                    yield.Break();
+                });
             }
         }
     }

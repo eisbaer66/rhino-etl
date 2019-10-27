@@ -1,3 +1,5 @@
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.DataReaders
 {
     using System;
@@ -10,21 +12,21 @@ namespace Rhino.Etl.Core.DataReaders
     /// This is important because we can now pass an in memory generated code to code
     /// that requires this, such as the SqlBulkCopy class.
     /// </summary>
-    public abstract class EnumerableDataReader : IDataReader
+    public abstract class EnumerableDataReader<T> : IDataReader
     {
         /// <summary>
         /// The enumerator that we are iterating on.
         /// Required so subclasses can access the current object.
         /// </summary>
-        protected readonly IEnumerator enumerator;
+        protected readonly IAsyncEnumerator<T> enumerator;
         private long rowCount = 0;
         private bool isClosed = false;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EnumerableDataReader"/> class.
+        /// Initializes a new instance of the <see cref="EnumerableDataReader&lt;T&gt;"/> class.
         /// </summary>
         /// <param name="enumerator">The enumerator.</param>
-        protected EnumerableDataReader(IEnumerator enumerator)
+        protected EnumerableDataReader(IAsyncEnumerator<T> enumerator)
         {
             this.enumerator = enumerator;
         }
@@ -99,7 +101,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// </returns>
         public bool Read()
         {
-            bool next = enumerator.MoveNext();
+            bool next = enumerator.MoveNextAsync().Result;
             if (next)
                 rowCount += 1;
             return next;

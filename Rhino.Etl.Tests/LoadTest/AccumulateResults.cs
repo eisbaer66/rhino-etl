@@ -1,20 +1,21 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.LoadTest
 {
     using System.Collections.Generic;
     using Core;
     using Core.Operations;
 
-    public class AccumulateResults : AbstractOperation
+    public class AccumulateResults : AbstractProcessingOperation
     {
         public int count = 0;
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield @yield)
         {
-            foreach (Row row in rows)
-            {
-                count += 1;
-            }
-            yield break;
+            count += 1;
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Rhino.Etl.Core.Enumerables;
 
 namespace Rhino.Etl.Core.Operations
@@ -15,47 +17,49 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows);
+            return new AsyncEnumerable<Row>(async yield => {
+                var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows);
 
-            var sync = new object();
+                var sync = new SemaphoreSlim(1, 1);
 
-            foreach (var operation in Operations)
-            {
-                var clone = input.Select(r => r.Clone());
-                var result = operation.Execute(clone);
-
-                if (result == null)
+                foreach (var operation in Operations)
                 {
-                    input.Dispose();
-                    continue;
+                    var clone = input.Select(r => r.Clone());
+                    var result = operation.Execute(clone);
+
+                    if (result == null)
+                    {
+                        await input.DisposeAsync();
+                        continue;
+                    }
+
+                    var enumerator = result.GetAsyncEnumerator();
+
+                    ThreadPool.QueueUserWorkItem(async delegate
+                                                 {
+                                                     try
+                                                     {
+                                                         while (await enumerator.MoveNextAsync()) ;
+                                                     }
+                                                     finally
+                                                     {
+                                                         await sync.Execute(async () =>
+                                                         {
+                                                             await enumerator.DisposeAsync();
+                                                             Monitor.Pulse(sync);
+                                                         });
+                                                     }
+                                                 });
                 }
 
-                var enumerator = result.GetEnumerator();
+                lock (sync)
+                    while (input.ConsumersLeft > 0)
+                        Monitor.Wait(sync);
 
-                ThreadPool.QueueUserWorkItem(delegate
-                                             {
-                                                 try
-                                                 {
-                                                     while (enumerator.MoveNext()) ;
-                                                 }
-                                                 finally
-                                                 {
-                                                     lock (sync)
-                                                     {
-                                                        enumerator.Dispose();
-                                                        Monitor.Pulse(sync);
-                                                     }
-                                                 }
-                                             });
-            }
-
-            lock (sync)
-                while (input.ConsumersLeft > 0)
-                    Monitor.Wait(sync);
-
-            yield break;
+                yield.Break();
+            });
         }
     }
 }

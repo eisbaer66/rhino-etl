@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests.LoadTest
@@ -19,8 +20,6 @@ namespace Rhino.Etl.Tests.LoadTest
         public LoadTestFixture()
         {
             currentUserCount = GetUserCount("1 = 1");
-            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
-                push.Execute();
         }
 
         public void AssertUpdatedAllRows()
@@ -39,38 +38,44 @@ namespace Rhino.Etl.Tests.LoadTest
         }
 
         [Fact]
-        public void CanUpdateAllUsersToUpperCase()
+        public async Task CanUpdateAllUsersToUpperCase()
         {
+            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
+                await push.Execute();
             using (UpperCaseUserNames update = new UpperCaseUserNames())
             {
                 update.RegisterLast(new UpdateUserNames());
-                update.Execute();
+                await update.Execute();
             }
             AssertUpdatedAllRows();
         }
 
         [Fact]
-        public void CanBatchUpdateAllUsersToUpperCase()
+        public async Task CanBatchUpdateAllUsersToUpperCase()
         {
+            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
+                await push.Execute();
             using (UpperCaseUserNames update = new UpperCaseUserNames())
             {
                 update.RegisterLast(new BatchUpdateUserNames());
-                update.Execute();
+                await update.Execute();
             }
 
             AssertUpdatedAllRows();
         }
 
         [Fact]
-        public void BulkInsertUpdatedRows()
+        public async Task BulkInsertUpdatedRows()
         {
-            if(expectedCount != GetUserCount("1 = 1"))
+            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
+                await push.Execute();
+            if (expectedCount != GetUserCount("1 = 1"))
                 return;//ignoring test
 
             using (UpperCaseUserNames update = new UpperCaseUserNames())
             {
                 update.RegisterLast(new BulkInsertUsers());
-                update.Execute();
+                await update.Execute();
             }
 
             AssertUpdatedAllRows();

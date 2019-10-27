@@ -1,4 +1,6 @@
 using System.Configuration;
+using System.Threading;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Core
@@ -67,13 +69,13 @@ namespace Rhino.Etl.Core
         /// <summary>
         /// Executes this process
         /// </summary>
-        public void Execute()
+        public async Task Execute(CancellationToken cancellationToken = default)
         {
             Initialize();
             MergeLastOperationsToOperations();
             RegisterToOperationsEvents();
             Trace("Starting to execute {ProcessName}", Name);
-            PipelineExecuter.Execute(Name, operations, TranslateRows);
+            await PipelineExecuter.Execute(Name, operations, TranslateRows, cancellationToken);
 
             PostProcessing();
         }
@@ -81,7 +83,7 @@ namespace Rhino.Etl.Core
         /// <summary>
         /// Translate the rows from one representation to another
         /// </summary>
-        public virtual IEnumerable<Row> TranslateRows(IEnumerable<Row> rows)
+        public virtual IAsyncEnumerable<Row> TranslateRows(IAsyncEnumerable<Row> rows)
         {
             return rows;
         }

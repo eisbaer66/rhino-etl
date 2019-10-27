@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Core.Enumerables
 {
     using System.Collections.Generic;
@@ -13,7 +15,7 @@ namespace Rhino.Etl.Core.Enumerables
         /// </summary>
         /// <param name="operation">The operation.</param>
         /// <param name="inner">The innerEnumerator.</param>
-        public EventRaisingEnumerator(IOperation operation, IEnumerable<Row> inner) : base(operation, inner)
+        public EventRaisingEnumerator(IOperation operation, IAsyncEnumerable<Row> inner) : base(operation, inner)
         {}
 
         ///<summary>
@@ -25,9 +27,9 @@ namespace Rhino.Etl.Core.Enumerables
         ///</returns>
         ///
         ///<exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception><filterpriority>2</filterpriority>
-        public override bool MoveNext()
+        public override async ValueTask<bool> MoveNextAsync()
         {
-            bool result = base.MoveNext();
+            bool result = await base.MoveNextAsync();
 
             if(!result) 
                 operation.RaiseFinishedProcessing();

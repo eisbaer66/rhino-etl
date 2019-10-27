@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Core
 {
     using System;
@@ -16,9 +19,10 @@ namespace Rhino.Etl.Core
         /// <param name="pipelineName">The name.</param>
         /// <param name="pipeline">The pipeline.</param>
         /// <param name="translateRows">Translate the rows into another representation</param>
-        void Execute(string pipelineName,
-                     ICollection<IOperation> pipeline,
-                     Func<IEnumerable<Row>, IEnumerable<Row>> translateRows);
+        /// <param name="cancellationToken"></param>
+        Task Execute(string pipelineName,
+            ICollection<IOperation> pipeline,
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateRows, CancellationToken cancellationToken);
 
         /// <summary>
         /// Transform the pipeline to an enumerable
@@ -27,10 +31,10 @@ namespace Rhino.Etl.Core
         /// <param name="rows">The rows.</param>
         /// <param name="translateEnumerable">Translate the rows from one representation to another</param>
         /// <returns></returns>
-        IEnumerable<Row> PipelineToEnumerable(
-            ICollection<IOperation> pipeline, 
-            IEnumerable<Row> rows,
-            Func<IEnumerable<Row>, IEnumerable<Row>> translateEnumerable);
+        IAsyncEnumerable<Row> PipelineToEnumerable(
+            ICollection<IOperation> pipeline,
+            IAsyncEnumerable<Row> rows,
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable);
 
         /// <summary>
         /// Gets all errors that occured under this executer

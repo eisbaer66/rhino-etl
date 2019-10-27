@@ -1,4 +1,5 @@
-﻿using Rhino.Etl.Core.Infrastructure;
+﻿using System.Threading.Tasks;
+using Rhino.Etl.Core.Infrastructure;
 using Xunit;
 
 namespace Rhino.Etl.Tests.Dsl
@@ -17,10 +18,10 @@ namespace Rhino.Etl.Tests.Dsl
         }
 
         [Fact]
-        public void CanCopyTableWithTimeout()
+        public async Task CanCopyTableWithTimeout()
         {
             using (EtlProcess process = CreateDslInstance("Dsl/InputTimeout.boo"))
-                process.Execute();
+                await process.Execute();
             
             List<string> names = Use.Transaction<List<string>>("test", delegate(IDbCommand cmd)
             {

@@ -1,23 +1,23 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.Joins
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class AllStringsToUpperCase : AbstractOperation
+    public class AllStringsToUpperCase : AbstractProcessingOperation
     {
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield @yield)
         {
-            foreach (Row row in rows)
+            foreach (string column in row.Columns)
             {
-                foreach (string column in row.Columns)
-                {
-                    string item = row[column] as string;
-                    if(item!=null)
-                        row[column] = item.ToUpper();
-                }
-                yield return row;
+                string item = row[column] as string;
+                if(item!=null)
+                    row[column] = item.ToUpper();
             }
+            await yield.ReturnAsync(row);
         }
     }
 }

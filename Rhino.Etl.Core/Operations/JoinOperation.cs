@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Operations
 {
     using Enumerables;
@@ -41,57 +44,60 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">Rows in pipeline. These are only used if a left part of the join was not specified.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            PrepareForJoin();
+            return new AsyncEnumerable<Row>(async yield => {
+                PrepareForJoin();
 
-            SetupJoinConditions();
-            Guard.Against(leftColumns == null, "You must setup the left columns");
-            Guard.Against(rightColumns == null, "You must setup the right columns");
+                SetupJoinConditions();
+                Guard.Against(leftColumns == null, "You must setup the left columns");
+                Guard.Against(rightColumns == null, "You must setup the right columns");
 
-            IEnumerable<Row> rightEnumerable = GetRightEnumerable();
+                IAsyncEnumerable<Row> rightEnumerable = await GetRightEnumerable();
 
-            IEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows);
-            foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
-            {
-                ObjectArrayKeys key = leftRow.CreateKey(leftColumns);
-                List<Row> rightRows;
-                if (this.rightRowsByJoinKey.TryGetValue(key, out rightRows))
+                IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows);
+                foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
                 {
-                    foreach (Row rightRow in rightRows)
+                    ObjectArrayKeys key = leftRow.CreateKey(leftColumns);
+                    List<Row> rightRows;
+                    if (this.rightRowsByJoinKey.TryGetValue(key, out rightRows))
                     {
-                        rightRowsWereMatched[rightRow] = null;
-                        yield return MergeRows(leftRow, rightRow);
+                        foreach (Row rightRow in rightRows)
+                        {
+                            rightRowsWereMatched[rightRow] = null;
+                            await yield.ReturnAsync(MergeRows(leftRow, rightRow));
+                        }
+                    }
+                    else if ((jointype & JoinType.Left) != 0)
+                    {
+                        Row emptyRow = new Row();
+                        await yield.ReturnAsync(MergeRows(leftRow, emptyRow));
+                    }
+                    else
+                    {
+                        LeftOrphanRow(leftRow);
                     }
                 }
-                else if ((jointype & JoinType.Left) != 0)
+
+                await rightEnumerable.ForEachAsync(async rightRow =>
                 {
+                    if (rightRowsWereMatched.ContainsKey(rightRow))
+                        return;
                     Row emptyRow = new Row();
-                    yield return MergeRows(leftRow, emptyRow);
-                }
-                else
-                {
-                    LeftOrphanRow(leftRow);
-                }
-            }
-            foreach (Row rightRow in rightEnumerable)
-            {
-                if (rightRowsWereMatched.ContainsKey(rightRow))
-                    continue;
-                Row emptyRow = new Row();
-                if ((jointype & JoinType.Right) != 0)
-                    yield return MergeRows(emptyRow, rightRow);
-                else
-                    RightOrphanRow(rightRow);
-            }
+                    if ((jointype & JoinType.Right) != 0)
+                        await yield.ReturnAsync(MergeRows(emptyRow, rightRow));
+                    else
+                        RightOrphanRow(rightRow);
+                });
+            });
         }
 
-        private IEnumerable<Row> GetRightEnumerable()
+        private async Task<IAsyncEnumerable<Row>> GetRightEnumerable()
         {
-            IEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
+            IAsyncEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
                 new EventRaisingEnumerator(right, right.Execute(null))
                 );
-            foreach (Row row in rightEnumerable)
+            await rightEnumerable.ForEachAsync(row =>
             {
                 ObjectArrayKeys key = row.CreateKey(rightColumns);
                 List<Row> rowsForKey;
@@ -99,8 +105,9 @@ namespace Rhino.Etl.Core.Operations
                 {
                     this.rightRowsByJoinKey[key] = rowsForKey = new List<Row>();
                 }
+
                 rowsForKey.Add(row);
-            }
+            });
             return rightEnumerable;
         }
 

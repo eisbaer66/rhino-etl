@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Cmd
 {
     using System;
@@ -9,7 +11,7 @@ namespace Rhino.Etl.Cmd
     {
         private static ILog _log;
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             bool verbose = false;
 #if DEBUG
@@ -29,7 +31,7 @@ namespace Rhino.Etl.Cmd
 
             try
             {
-                new RhinoEtlSetup(SetupLogging).Execute(args);
+                await new RhinoEtlSetup(SetupLogging).Execute(args);
             }
             catch (Exception e)
             {

@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
 
 namespace Rhino.Etl.Tests.Joins
 {
-    public class GenericEnumerableOperation : AbstractOperation
+    public class GenericEnumerableOperation : AbstractYieldOperation
     {
         private readonly IEnumerable<Row> rowsToReturn;
 
@@ -13,9 +15,12 @@ namespace Rhino.Etl.Tests.Joins
             rowsToReturn = rows;
         }
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
         {
-            return rowsToReturn;
+            foreach (Row row in rowsToReturn)
+            {
+                await yield.ReturnAsync(row);
+            }
         }
     }
 }

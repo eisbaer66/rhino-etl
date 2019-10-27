@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests.Dsl
@@ -19,10 +20,10 @@ namespace Rhino.Etl.Tests.Dsl
         }
 
         [Fact]
-        public void CanWriteJoinsToDatabase()
+        public async Task CanWriteJoinsToDatabase()
         {
             using(EtlProcess process = CreateDslInstance("Dsl/InnerHashJoin.boo"))
-                process.Execute();
+                await process.Execute();
             List<string> roles = new List<string>();
             Use.Transaction("test", delegate(IDbCommand command)
             {

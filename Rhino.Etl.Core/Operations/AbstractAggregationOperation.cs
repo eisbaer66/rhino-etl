@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Operations
 {
     using System.Collections.Generic;
@@ -13,23 +16,25 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            IDictionary<ObjectArrayKeys, Row> aggregations = new Dictionary<ObjectArrayKeys, Row>();
-            string[] groupBy = GetColumnsToGroupBy();
-            foreach (Row row in rows)
-            {
-                ObjectArrayKeys key = row.CreateKey(groupBy);
-                Row aggregate;
-                if (aggregations.TryGetValue(key, out aggregate) == false)
-                    aggregations[key] = aggregate = new Row();
-                Accumulate(row, aggregate);
-            }
-            foreach (Row row in aggregations.Values)
-            {
-                FinishAggregation(row);
-                yield return row;
-            }
+            return new AsyncEnumerable<Row>(async yield => {
+                IDictionary<ObjectArrayKeys, Row> aggregations = new Dictionary<ObjectArrayKeys, Row>();
+                string[] groupBy = GetColumnsToGroupBy();
+                await rows.ForEachAsync(async row =>
+                {
+                    ObjectArrayKeys key = row.CreateKey(groupBy);
+                    Row aggregate;
+                    if (aggregations.TryGetValue(key, out aggregate) == false)
+                        aggregations[key] = aggregate = new Row();
+                    await Accumulate(row, aggregate);
+                });
+                foreach (Row row in aggregations.Values)
+                {
+                    await FinishAggregation(row);
+                    await yield.ReturnAsync(row);
+                }
+            });
         }
 
         /// <summary>
@@ -37,14 +42,17 @@ namespace Rhino.Etl.Core.Operations
         /// aggregate, before sending it downward in the pipeline.
         /// </summary>
         /// <param name="aggregate">The row.</param>
-        protected virtual void FinishAggregation(Row aggregate){}
+        protected virtual async Task FinishAggregation(Row aggregate)
+        {
+            await Task.CompletedTask;
+        }
 
         /// <summary>
         /// Accumulate the current row to the current aggregation
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="aggregate">The aggregate.</param>
-        protected abstract void Accumulate(Row row, Row aggregate);
+        protected abstract Task Accumulate(Row row, Row aggregate);
 
         /// <summary>
         /// Gets the columns list to group each row by

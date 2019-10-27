@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Rhino.Etl.Core;
 using Xunit;
 using Rhino.Etl.Core.Infrastructure;
@@ -8,16 +9,16 @@ namespace Rhino.Etl.Tests.Branches
     public abstract class BranchesFixture : BaseFibonacciTest
     {
         [Fact]
-        public void CanBranchThePipeline()
+        public async Task CanBranchThePipeline()
         {
             using (var process = CreateBranchingProcess(30, 2))
-                process.Execute();
+                await process.Execute();
 
             AssertFibonacci(30, 2);
         }
 
         [Fact] 
-        public void CanBranchThePipelineEfficiently()
+        public async Task CanBranchThePipelineEfficiently()
         {
             const int iterations = 30000;
             const int childOperations = 10;
@@ -25,7 +26,7 @@ namespace Rhino.Etl.Tests.Branches
             var initialMemory = GC.GetTotalMemory(true);
 
             using (var process = CreateBranchingProcess(iterations, childOperations))
-                process.Execute();
+                await process.Execute();
 
             var finalMemory = GC.GetTotalMemory(true);
             var consumedMemory = finalMemory - initialMemory;

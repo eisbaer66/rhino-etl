@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Rhino.Etl.Tests.Dsl
 {
@@ -18,12 +19,12 @@ namespace Rhino.Etl.Tests.Dsl
 
 
         [Fact]
-        public void CanPerformExternalOperationFromDsl()
+        public async Task CanPerformExternalOperationFromDsl()
         {
             EtlProcess process = CreateDslInstance("Dsl/Import.boo");
             ResultsToList operation = new ResultsToList();
             process.RegisterLast(operation);
-            process.Execute();
+            await process.Execute();
             Assert.Equal(10, operation.Results.Count);
             Assert.Equal("1, 1, 2, 3, 5, 8, 13, 21, 34, 55", string.Join(", ", operation.Results.Select(r => r["id"]).ToArray()));
         }

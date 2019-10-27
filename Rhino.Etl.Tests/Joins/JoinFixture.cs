@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.Joins
 {
     using System.Collections.Generic;
@@ -10,15 +13,15 @@ namespace Rhino.Etl.Tests.Joins
     {
       
         [Fact]
-        public void InnerJoin()
+        public async Task InnerJoin()
         {
             using (InnerJoinUsersToPeopleByEmail join = new InnerJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(1, items.Count);
                 Assert.Equal(3, items[0]["person_id"]);
@@ -26,15 +29,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void RightJoin()
+        public async Task RightJoin()
         {
             using (RightJoinUsersToPeopleByEmail join = new RightJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(2, items.Count);
                 Assert.Equal(3, items[0]["person_id"]);
@@ -44,15 +47,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void LeftJoin()
+        public async Task LeftJoin()
         {
             using (LeftJoinUsersToPeopleByEmail join = new LeftJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(2, items.Count);
                 Assert.Equal(3, items[0]["person_id"]);
@@ -62,15 +65,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void FullJoin()
+        public async Task FullJoin()
         {
             using (FullJoinUsersToPeopleByEmail join = new FullJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(3, items.Count);
 
@@ -85,15 +88,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void SortMergeInnerJoin()
+        public async Task SortMergeInnerJoin()
         {
             using (InnerMergeJoinUsersToPeopleByEmail join = new InnerMergeJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(1, items.Count);
                 Assert.Equal(3, items[0]["person_id"]);
@@ -101,15 +104,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void SortMergeLeftJoin()
+        public async Task SortMergeLeftJoin()
         {
             using (LeftMergeJoinUsersToPeopleByEmail join = new LeftMergeJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(2, items.Count);
                 Assert.Equal(3, items[0]["person_id"]);
@@ -119,15 +122,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void SortMergeRightJoin()
+        public async Task SortMergeRightJoin()
         {
             using (RightMergeJoinUsersToPeopleByEmail join = new RightMergeJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(2, items.Count);
                 Assert.Equal(3, items[0]["person_id"]);
@@ -137,15 +140,15 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void SortMergeFullJoin()
+        public async Task SortMergeFullJoin()
         {
             using (FullMergeJoinUsersToPeopleByEmail join = new FullMergeJoinUsersToPeopleByEmail())
             {
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(3, items.Count);
 
@@ -160,7 +163,7 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void SortMergeFullJoinMergesMultipleNonMatchingLeftRowsAtEnd()
+        public async Task SortMergeFullJoinMergesMultipleNonMatchingLeftRowsAtEnd()
         {
             AddUser("toby", "toby@test.org");
             AddUser("tom", "tom@test.org");
@@ -170,8 +173,8 @@ namespace Rhino.Etl.Tests.Joins
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(5, items.Count);
                 Assert.Null(items[3]["person_id"]);
@@ -183,7 +186,7 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void SortMergeFullJoinMergesMultipleNonMatchingRightRowsAtEnd()
+        public async Task SortMergeFullJoinMergesMultipleNonMatchingRightRowsAtEnd()
         {
             AddPerson(8, "toby@test.org");
             AddPerson(10, "tom@test.org");
@@ -193,8 +196,8 @@ namespace Rhino.Etl.Tests.Joins
                 join.Left(new GenericEnumerableOperation(left))
                     .Right(new GenericEnumerableOperation(right));
                 join.PrepareForExecution(new SingleThreadedPipelineExecuter());
-                IEnumerable<Row> result = join.Execute(null);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = join.Execute(null);
+                List<Row> items = await result.ToListAsync();
 
                 Assert.Equal(5, items.Count);
                 Assert.Equal(8, items[3]["person_id"]);

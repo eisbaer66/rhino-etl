@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests
 {
     using System;
@@ -10,37 +12,37 @@ namespace Rhino.Etl.Tests
     public class SqlBatchOperationFixture : BaseFibonacciTest
     {
         [Fact]
-        public void CanInsertToDatabaseFromInMemoryCollection()
+        public async Task CanInsertToDatabaseFromInMemoryCollection()
         {
             BatchFibonacci fibonaci = new BatchFibonacci(25,Should.WorkFine);
-            fibonaci.Execute();
+            await fibonaci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void CanInsertToDatabaseFromInMemoryCollectionWithSlowOperation()
+        public async Task CanInsertToDatabaseFromInMemoryCollectionWithSlowOperation()
         {
             var fibonaci = new SlowBatchFibonacci(25, Should.WorkFine);
-            fibonaci.Execute();
+            await fibonaci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
+        public async Task CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
         {
             BatchFibonacciFromConnectionStringSettings fibonaci = new BatchFibonacciFromConnectionStringSettings(25, Should.WorkFine);
-            fibonaci.Execute();
+            await fibonaci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void WhenErrorIsThrownWillRollbackTransaction()
+        public async Task WhenErrorIsThrownWillRollbackTransaction()
         {
             BatchFibonacci fibonaci = new BatchFibonacci(25, Should.Throw);
-            fibonaci.Execute();
+            await fibonaci.Execute();
             Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
             AssertFibonacciTableEmpty();
         }

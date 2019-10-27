@@ -6,9 +6,9 @@ namespace Rhino.Etl.Core.DataReaders
     /// <summary>
     /// A datareader over a collection of dictionaries
     /// </summary>
-    public class DictionaryEnumeratorDataReader : EnumerableDataReader
+    public class DictionaryEnumeratorDataReader : EnumerableDataReader<Row>
     {
-        private readonly IEnumerable<Row> enumerable;
+        private readonly IAsyncEnumerable<Row> enumerable;
         private readonly List<Descriptor> propertyDescriptors = new List<Descriptor>();
 
         /// <summary>
@@ -18,8 +18,8 @@ namespace Rhino.Etl.Core.DataReaders
         /// <param name="enumerable">The enumerator.</param>
         public DictionaryEnumeratorDataReader(
             IDictionary<string, Type> schema,
-            IEnumerable<Row> enumerable)
-            : base(enumerable.GetEnumerator())
+            IAsyncEnumerable<Row> enumerable)
+            : base(enumerable.GetAsyncEnumerator())
         {
             this.enumerable = enumerable;
             foreach (KeyValuePair<string, Type> pair in schema)
@@ -43,13 +43,14 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         protected override void DoClose()
         {
-            IDisposable disposable = enumerator as IDisposable;
+            enumerator.DisposeAsync();
+
+            IDisposable disposable = enumerable as IDisposable;
             if (disposable != null)
                 disposable.Dispose();
-
-            disposable = enumerable as IDisposable;
-            if(disposable != null)
-                disposable.Dispose();
+            IAsyncDisposable disposableAsync = enumerable as IAsyncDisposable;
+            if (disposableAsync != null)
+                enumerator.DisposeAsync();
         }
     }
 }

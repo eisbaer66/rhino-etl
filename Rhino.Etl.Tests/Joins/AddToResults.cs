@@ -1,10 +1,13 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.Joins
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class AddToResults : AbstractOperation
+    public class AddToResults : AbstractYieldOperation
     {
         private readonly ICollection<Row> results;
 
@@ -13,13 +16,9 @@ namespace Rhino.Etl.Tests.Joins
             this.results = results;
         }
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
         {
-            foreach (Row row in rows)
-            {
-                results.Add(row);
-            }
-            return results;
+            await rows.ForEachAsync(row => { results.Add(row); });
         }
     }
 }

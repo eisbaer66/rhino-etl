@@ -1,4 +1,6 @@
 using System;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using FileHelpers;
 using FileHelpers.RunTime;
 
@@ -10,7 +12,7 @@ namespace Rhino.Etl.Tests.UsingDAL
     using Rhino.Etl.Core.Operations;
     using System.Linq;
 
-    public class ReadUsersFromFileDynamic : AbstractOperation
+    public class ReadUsersFromFileDynamic : AbstractYieldOperation
     {
         private Type _tblClass;
         public ReadUsersFromFileDynamic()
@@ -23,7 +25,7 @@ namespace Rhino.Etl.Tests.UsingDAL
             _tblClass = userRecordClassBuilder.CreateRecordClass();
         }
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
         {
             var file = new FileHelperEngine(_tblClass);
             //var ary = new[] {"one", "two", "three"};
@@ -31,7 +33,7 @@ namespace Rhino.Etl.Tests.UsingDAL
             var items = file.ReadFile("users.txt");
             foreach (object obj in items)
             {
-                yield return Row.FromObject(obj);
+                await @yield.ReturnAsync(Row.FromObject(obj));
             }
         }
     }

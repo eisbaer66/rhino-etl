@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests.Integration
@@ -14,10 +15,10 @@ namespace Rhino.Etl.Tests.Integration
     public class DatabaseToDatabaseWithTransformations : BaseUserToPeopleTest
     {
         [Fact]
-        public void CanCopyTableWithTransform()
+        public async Task CanCopyTableWithTransform()
         {
             using(UsersToPeople process = new UsersToPeople())
-                process.Execute();
+                await process.Execute();
             
             System.Collections.Generic.List<string[]> names = Use.Transaction<System.Collections.Generic.List<string[]>>("test", delegate(IDbCommand cmd)
             {
@@ -36,10 +37,10 @@ namespace Rhino.Etl.Tests.Integration
         }
 
         [Fact]
-        public void CanCopyTableWithTransformFromConnectionStringSettings()
+        public async Task CanCopyTableWithTransformFromConnectionStringSettings()
         {
             using (UsersToPeopleFromConnectionStringSettings process = new UsersToPeopleFromConnectionStringSettings())
-                process.Execute();
+                await process.Execute();
 
             System.Collections.Generic.List<string[]> names = Use.Transaction<System.Collections.Generic.List<string[]>>("test", delegate(IDbCommand cmd)
             {

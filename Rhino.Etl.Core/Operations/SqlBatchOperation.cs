@@ -1,4 +1,5 @@
 using System.Configuration;
+using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Core.Operations
@@ -58,50 +59,55 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            Guard.Against<ArgumentException>(rows == null, "SqlBatchOperation cannot accept a null enumerator");
-            using (SqlConnection connection = (SqlConnection)Use.Connection(ConnectionStringSettings))
-            using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
-            {
-                SqlCommandSet commandSet = null;
-                CreateCommandSet(connection, transaction, ref commandSet, timeout);
-
-                foreach (Row row in rows)
+            return new AsyncEnumerable<Row>(async yield => {
+                Guard.Against<ArgumentException>(rows == null, "SqlBatchOperation cannot accept a null enumerator");
+                using (SqlConnection connection = (SqlConnection)Use.Connection(ConnectionStringSettings))
+                using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
                 {
-                    SqlCommand command = new SqlCommand();
-                    PrepareCommand(row, command);
-                    if (command.Parameters.Count == 0 && (RuntimeInfo.Version.Contains("2.0") || RuntimeInfo.Version.Contains("1.1"))) //workaround around a framework bug
+                    SqlCommandSet commandSet = null;
+                    CreateCommandSet(connection, transaction, ref commandSet, timeout);
+
+                    await rows.ForEachAsync(row =>
                     {
-                        Guid guid = Guid.NewGuid();
-                        command.Parameters.AddWithValue(guid.ToString(), guid);
-                    }
-                    commandSet.Append(command);
-                    if (commandSet.CountOfCommands >= batchSize)
+                        SqlCommand command = new SqlCommand();
+                        PrepareCommand(row, command);
+                        if (command.Parameters.Count == 0 &&
+                            (RuntimeInfo.Version.Contains("2.0") || RuntimeInfo.Version.Contains("1.1"))
+                        ) //workaround around a framework bug
+                        {
+                            Guid guid = Guid.NewGuid();
+                            command.Parameters.AddWithValue(guid.ToString(), guid);
+                        }
+
+                        commandSet.Append(command);
+                        if (commandSet.CountOfCommands >= batchSize)
+                        {
+                            Debug("Executing batch of {CountOfCommands} commands", commandSet.CountOfCommands);
+                            commandSet.ExecuteNonQuery();
+                            CreateCommandSet(connection, transaction, ref commandSet, timeout);
+                        }
+                    });
+                    Debug("Executing final batch of {CountOfCommands} commands", commandSet.CountOfCommands);
+                    commandSet.ExecuteNonQuery();
+
+                    if (PipelineExecuter.HasErrors)
                     {
-                        Debug("Executing batch of {CountOfCommands} commands", commandSet.CountOfCommands);
-                        commandSet.ExecuteNonQuery();
-                        CreateCommandSet(connection, transaction, ref commandSet, timeout);
+                        Warn(null, "Rolling back transaction in {OperationName}", Name);
+                        if (transaction != null) transaction.Rollback();
+                        Warn(null, "Rolled back transaction in {OperationName}", Name);
                     }
-                }
-                Debug("Executing final batch of {CountOfCommands} commands", commandSet.CountOfCommands);
-                commandSet.ExecuteNonQuery();
+                    else
+                    {
+                        Debug("Committing {OperationName}", Name);
+                        if (transaction != null) transaction.Commit();
+                        Debug("Committed {OperationName}", Name);
+                    }                    
 
-                if (PipelineExecuter.HasErrors)
-                {
-                    Warn(null, "Rolling back transaction in {OperationName}", Name);
-                    if (transaction != null) transaction.Rollback();
-                    Warn(null, "Rolled back transaction in {OperationName}", Name);
                 }
-                else
-                {
-                    Debug("Committing {OperationName}", Name);
-                    if (transaction != null) transaction.Commit();
-                    Debug("Committed {OperationName}", Name);
-                }                    
-
-            }
-            yield break;
+                yield.Break();
+            });
         }
 
         /// <summary>

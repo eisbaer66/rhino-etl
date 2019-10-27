@@ -114,7 +114,7 @@ namespace Rhino.Etl.Tests.Branches
 
     public class TestAbstractBranchingOperation    : AbstractBranchingOperation
     {
-        public override    IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
             throw new NotImplementedException();
         }

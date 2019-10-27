@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests
 {
     using System;
@@ -9,70 +11,70 @@ namespace Rhino.Etl.Tests
     public class OutputCommandFixture : BaseFibonacciTest
     {
         [Fact]
-        public void CanInsertToDatabaseFromInMemoryCollection()
+        public async Task CanInsertToDatabaseFromInMemoryCollection()
         {
             OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(25, Should.WorkFine);
-            fibonaci.Execute();
+            await fibonaci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
+        public async Task CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
         {
             OutputFibonacciToDatabaseFromConnectionStringSettings fibonaci = new OutputFibonacciToDatabaseFromConnectionStringSettings(25, Should.WorkFine);
-            fibonaci.Execute();
+            await fibonaci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void WillRaiseRowProcessedEvent()
+        public async Task WillRaiseRowProcessedEvent()
         {
             int rowsProcessed = 0;
 
             using (OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(1, Should.WorkFine))
             {
                 fibonaci.OutputOperation.OnRowProcessed += delegate { rowsProcessed++; };
-                fibonaci.Execute();
+                await fibonaci.Execute();
             }
 
             Assert.Equal(1, rowsProcessed);
         }
 
         [Fact]
-        public void WillRaiseRowProcessedEventUntilItThrows()
+        public async Task WillRaiseRowProcessedEventUntilItThrows()
         {
             int rowsProcessed = 0;
 
             using (OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(25, Should.Throw))
             {
                 fibonaci.OutputOperation.OnRowProcessed += delegate { rowsProcessed++; };
-                fibonaci.Execute();
+                await fibonaci.Execute();
 
                 Assert.Equal(fibonaci.ThrowingOperation.RowsAfterWhichToThrow, rowsProcessed);
             }
         }
 
         [Fact]
-        public void WillRaiseFinishedProcessingEventOnce()
+        public async Task WillRaiseFinishedProcessingEventOnce()
         {
             int finished = 0;
 
             using (OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(1, Should.WorkFine))
             {
                 fibonaci.OutputOperation.OnFinishedProcessing += delegate { finished++; };
-                fibonaci.Execute();
+                await fibonaci.Execute();
             }
 
             Assert.Equal(1, finished);
         }
 
         [Fact]
-        public void WhenErrorIsThrownWillRollbackTransaction()
+        public async Task WhenErrorIsThrownWillRollbackTransaction()
         {
             OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(25, Should.Throw);
-            fibonaci.Execute();
+            await fibonaci.Execute();
             Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
             AssertFibonacciTableEmpty();
         }

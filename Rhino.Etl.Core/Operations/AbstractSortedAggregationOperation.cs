@@ -1,4 +1,6 @@
-﻿namespace Rhino.Etl.Core.Operations
+﻿using Dasync.Collections;
+
+namespace Rhino.Etl.Core.Operations
 {
     using System.Collections.Generic;
 
@@ -14,29 +16,31 @@
         /// </summary>
         /// <param name="rows">The pre-sorted rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            ObjectArrayKeys previousKey = null;
-            var aggregate = new Row();
-            var groupBy = GetColumnsToGroupBy();
+            return new AsyncEnumerable<Row>(async yield => {
+                ObjectArrayKeys previousKey = null;
+                var aggregate = new Row();
+                var groupBy = GetColumnsToGroupBy();
 
-            foreach (var row in rows)
-            {
-                var key = row.CreateKey(groupBy);
-
-                if (previousKey != null && !previousKey.Equals(key))
+                await rows.ForEachAsync(async row =>
                 {
-                    FinishAggregation(aggregate);
-                    yield return aggregate;
-                    aggregate = new Row();
-                }
+                    var key = row.CreateKey(groupBy);
 
-                Accumulate(row, aggregate);
-                previousKey = key;
-            }
+                    if (previousKey != null && !previousKey.Equals(key))
+                    {
+                        await FinishAggregation(aggregate);
+                        await yield.ReturnAsync(aggregate);
+                        aggregate = new Row();
+                    }
 
-            FinishAggregation(aggregate);
-            yield return aggregate;
+                    await Accumulate(row, aggregate);
+                    previousKey = key;
+                });
+
+                await FinishAggregation(aggregate);
+                await yield.ReturnAsync(aggregate);
+            });
         }
     }
 }

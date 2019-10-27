@@ -1,4 +1,5 @@
 using System.Configuration;
+using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Core.Operations
@@ -35,26 +36,28 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
-            using (IDbTransaction transaction = BeginTransaction(connection))
-            {
-                using (currentCommand = connection.CreateCommand())
+            return new AsyncEnumerable<Row>(async yield => {
+                using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
+                using (IDbTransaction transaction = BeginTransaction(connection))
                 {
-                    currentCommand.Transaction = transaction;
-                    PrepareCommand(currentCommand);
-                    using (IDataReader reader = currentCommand.ExecuteReader())
+                    using (currentCommand = connection.CreateCommand())
                     {
-                        while (reader.Read())
+                        currentCommand.Transaction = transaction;
+                        PrepareCommand(currentCommand);
+                        using (IDataReader reader = currentCommand.ExecuteReader())
                         {
-                            yield return CreateRowFromReader(reader);
+                            while (reader.Read())
+                            {
+                                await yield.ReturnAsync(CreateRowFromReader(reader));
+                            }
                         }
                     }
-                }
 
-                if (transaction != null) transaction.Commit();
-            }
+                    if (transaction != null) transaction.Commit();
+                }
+            });
         }
 
         /// <summary>

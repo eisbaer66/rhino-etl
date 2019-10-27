@@ -47,7 +47,7 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
-        IEnumerable<Row> Execute(IEnumerable<Row> rows);
+        IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows);
 
         /// <summary>
         /// Raises the row processed event

@@ -83,7 +83,7 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
             MergeLastOperationsToOperations();
             return pipelineExeuter.PipelineToEnumerable(operations, rows, enumerable => enumerable);

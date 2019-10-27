@@ -1,4 +1,6 @@
 using System.Configuration;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Rhino.Etl.Core.Enumerables;
 using Rhino.Etl.Core.Infrastructure;
 
@@ -34,35 +36,39 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
-            using (IDbTransaction transaction = BeginTransaction(connection))
-            {
-                foreach (Row row in new SingleRowEventRaisingEnumerator(this, rows))
+            return new AsyncEnumerable<Row>( yield => {
+                using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
+                using (IDbTransaction transaction = BeginTransaction(connection))
                 {
-                    using (IDbCommand cmd = connection.CreateCommand())
+                    foreach (Row row in new SingleRowEventRaisingEnumerator(this, rows))
                     {
-                        currentCommand = cmd;
-                        currentCommand.Transaction = transaction;
-                        PrepareCommand(currentCommand, row);
-                        currentCommand.ExecuteNonQuery();
+                        using (IDbCommand cmd = connection.CreateCommand())
+                        {
+                            currentCommand = cmd;
+                            currentCommand.Transaction = transaction;
+                            PrepareCommand(currentCommand, row);
+                            currentCommand.ExecuteNonQuery();
+                        }
+                    }
+                    if (PipelineExecuter.HasErrors)
+                    {
+                        Warn("Rolling back transaction in {OperationName}", Name);
+                        if (transaction != null) transaction.Rollback();
+                        Warn("Rolled back transaction in {OperationName}", Name);
+                    }
+                    else
+                    {
+                        Debug("Committing {OperationName}", Name);
+                        if (transaction != null) transaction.Commit();
+                        Debug("Committed {OperationName}", Name);
                     }
                 }
-                if (PipelineExecuter.HasErrors)
-                {
-                    Warn("Rolling back transaction in {OperationName}", Name);
-                    if (transaction != null) transaction.Rollback();
-                    Warn("Rolled back transaction in {OperationName}", Name);
-                }
-                else
-                {
-                    Debug("Committing {OperationName}", Name);
-                    if (transaction != null) transaction.Commit();
-                    Debug("Committed {OperationName}", Name);
-                }
-            }
-            yield break;
+                yield.Break();
+
+                return Task.CompletedTask;
+            });
         }
 
         /// <summary>

@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Core.Enumerables
 {
     using System;
@@ -10,7 +12,7 @@ namespace Rhino.Etl.Core.Enumerables
     /// care of all the syncronization.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ThreadSafeEnumerator<T> : IEnumerable<T>, IEnumerator<T>
+    public class ThreadSafeEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumerator<T>
     {
         private bool active = true;
         private readonly Queue<T> cached = new Queue<T>();
@@ -22,20 +24,20 @@ namespace Rhino.Etl.Core.Enumerables
         /// <returns>
         /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
         /// </returns>
-        public IEnumerator<T> GetEnumerator()
+        public IAsyncEnumerator<T> GetEnumerator()
         {
             return this;
         }
 
         /// <summary>
-        /// Returns an enumerator that iterates through a collection.
+        /// Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns>
-        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
+        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
         /// </returns>
-        IEnumerator IEnumerable.GetEnumerator()
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
         {
-            return ((IEnumerable<T>)this).GetEnumerator();
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -51,9 +53,11 @@ namespace Rhino.Etl.Core.Enumerables
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
-        public void Dispose()
+        public ValueTask DisposeAsync()
         {
             cached.Clear();
+
+            return new ValueTask();
         }
 
         /// <summary>
@@ -63,7 +67,7 @@ namespace Rhino.Etl.Core.Enumerables
         /// true if the enumerator was successfully advanced to the next element; false if the enumerator has passed the end of the collection.
         /// </returns>
         /// <exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception>
-        public bool MoveNext()
+        public ValueTask<bool> MoveNextAsync()
         {
             lock (cached)
             {
@@ -71,31 +75,12 @@ namespace Rhino.Etl.Core.Enumerables
                     Monitor.Wait(cached);
 
                 if (active == false && cached.Count == 0)
-                    return false;
+                    return new ValueTask<bool>(false);
 
                 current = cached.Dequeue();
 
-                return true;
+                return new ValueTask<bool>(true);
             }
-        }
-
-        /// <summary>
-        /// Sets the enumerator to its initial position, which is before the first element in the collection.
-        /// </summary>
-        /// <exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception>
-        public void Reset()
-        {
-            throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// Gets the element in the collection at the current position of the enumerator.
-        /// </summary>
-        /// <value></value>
-        /// <returns>The element in the collection at the current position of the enumerator.</returns>
-        object IEnumerator.Current
-        {
-            get { return Current; }
         }
 
         /// <summary>

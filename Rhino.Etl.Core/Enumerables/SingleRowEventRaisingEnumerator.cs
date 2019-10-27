@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Operations;
 
 namespace Rhino.Etl.Core.Enumerables
@@ -7,21 +9,21 @@ namespace Rhino.Etl.Core.Enumerables
     /// <summary>
     /// An enumerator that will raise the events on the operation for each iterated item
     /// </summary>
-    public class SingleRowEventRaisingEnumerator : IEnumerable<Row>, IEnumerator<Row>
+    public class SingleRowEventRaisingEnumerator : IAsyncEnumerable<Row>, IAsyncEnumerator<Row>
     {
         /// <summary>
         /// Represents the operation on which to raise events
         /// </summary>
         protected readonly IOperation operation;
-        private readonly IEnumerable<Row> inner;
-        private IEnumerator<Row> innerEnumerator;
+        private readonly IAsyncEnumerable<Row> inner;
+        private IAsyncEnumerator<Row> innerEnumerator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SingleRowEventRaisingEnumerator"/> class.
         /// </summary>
         /// <param name="operation">The operation.</param>
         /// <param name="inner">The innerEnumerator.</param>
-        public SingleRowEventRaisingEnumerator(IOperation operation, IEnumerable<Row> inner)
+        public SingleRowEventRaisingEnumerator(IOperation operation, IAsyncEnumerable<Row> inner)
         {
             this.operation = operation;
             this.inner = inner;
@@ -44,9 +46,9 @@ namespace Rhino.Etl.Core.Enumerables
         ///Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         ///</summary>
         ///<filterpriority>2</filterpriority>
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            innerEnumerator.Dispose();
+            await innerEnumerator.DisposeAsync();
         }
 
         ///<summary>
@@ -58,9 +60,9 @@ namespace Rhino.Etl.Core.Enumerables
         ///</returns>
         ///
         ///<exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception><filterpriority>2</filterpriority>
-        public virtual bool MoveNext()
+        public virtual async ValueTask<bool> MoveNextAsync()
         {
-            bool result = innerEnumerator.MoveNext();
+            bool result = await innerEnumerator.MoveNextAsync();
             
             if (result)
             {
@@ -68,16 +70,6 @@ namespace Rhino.Etl.Core.Enumerables
             }
          
             return result;
-        }
-
-        ///<summary>
-        ///Sets the enumerator to its initial position, which is before the first element in the collection.
-        ///</summary>
-        ///
-        ///<exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception><filterpriority>2</filterpriority>
-        public void Reset()
-        {
-            innerEnumerator.Reset();
         }
 
         ///<summary>
@@ -89,7 +81,7 @@ namespace Rhino.Etl.Core.Enumerables
         ///</returns>
         ///
         ///<exception cref="T:System.InvalidOperationException">The enumerator is positioned before the first element of the collection or after the last element.-or- The collection was modified after the enumerator was created.</exception><filterpriority>2</filterpriority>
-        object IEnumerator.Current
+        Row IAsyncEnumerator<Row>.Current
         {
             get { return innerEnumerator.Current; }
         }
@@ -102,10 +94,10 @@ namespace Rhino.Etl.Core.Enumerables
         ///A <see cref="T:System.Collections.Generic.IEnumerator`1"></see> that can be used to iterate through the collection.
         ///</returns>
         ///<filterpriority>1</filterpriority>
-        IEnumerator<Row> IEnumerable<Row>.GetEnumerator()
+        IAsyncEnumerator<Row> IAsyncEnumerable<Row>.GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken)
         {
             Guard.Against(inner == null, "Null enumerator detected, are you trying to read from the first operation in the process?");
-            innerEnumerator = inner.GetEnumerator();
+            innerEnumerator = inner.GetAsyncEnumerator(cancellationToken);
             return this;
         }
 

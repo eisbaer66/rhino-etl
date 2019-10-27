@@ -1,22 +1,21 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.Dsl
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class ResultsToList : AbstractOperation
+    public class ResultsToList : AbstractProcessingOperation
     {
-        public List<Row> Results;
+        public List<Row> Results = new List<Row>();
 
-        /// <summary>
-        /// Executes this operation
-        /// </summary>
-        /// <param name="rows">The rows.</param>
-        /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield yield)
         {
-            Results = new List<Row>(rows);
-            yield break;
+            Results.Add(row);
+
+            await yield.ReturnAsync(row);
         }
     }
 }

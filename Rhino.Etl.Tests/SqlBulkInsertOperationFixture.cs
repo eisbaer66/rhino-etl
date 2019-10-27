@@ -1,5 +1,6 @@
 using System.Configuration;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Operations;
 using Rhino.Mocks;
 
@@ -15,28 +16,28 @@ namespace Rhino.Etl.Tests
     public class SqlBulkInsertOperationFixture : BaseFibonacciTest
     {
         [Fact]
-        public void CanInsertToDatabaseFromInMemoryCollection()
+        public async Task CanInsertToDatabaseFromInMemoryCollection()
         {
             BulkInsertFibonacciToDatabase fibonacci = new BulkInsertFibonacciToDatabase(25,Should.WorkFine);
-            fibonacci.Execute();
+            await fibonacci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
+        public async Task CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
         {
             BulkInsertFibonacciToDatabaseFromConnectionStringSettings fibonacci = new BulkInsertFibonacciToDatabaseFromConnectionStringSettings(25, Should.WorkFine);
-            fibonacci.Execute();
+            await fibonacci.Execute();
 
             Assert25ThFibonacci();
         }
 
         [Fact]
-        public void WhenErrorIsThrownWillRollbackTransaction()
+        public async Task WhenErrorIsThrownWillRollbackTransaction()
         {
             BulkInsertFibonacciToDatabase fibonaci = new BulkInsertFibonacciToDatabase(25, Should.Throw);
-            fibonaci.Execute();
+            await fibonaci.Execute();
             Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
             AssertFibonacciTableEmpty();
         }

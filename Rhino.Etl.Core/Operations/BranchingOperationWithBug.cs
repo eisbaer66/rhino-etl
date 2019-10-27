@@ -1,5 +1,6 @@
 using Rhino.Etl.Core.Enumerables;
 using System.Linq;
+using Dasync.Collections;
 
 namespace Rhino.Etl.Core.Operations
 {
@@ -16,25 +17,27 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
-            var copiedRows = new CachingEnumerable<Row>(rows);
+            return new AsyncEnumerable<Row>(async yield => {
+                var copiedRows = new CachingEnumerable<Row>(rows);
 
-            foreach (IOperation operation in Operations)
-            {
-                var cloned = copiedRows.Select(r => r.Clone());
+                foreach (IOperation operation in Operations)
+                {
+                    var cloned = copiedRows.Select(r => r.Clone());
 
-                IEnumerable<Row> enumerable = operation.Execute(cloned);
+                    IAsyncEnumerable<Row> enumerable = operation.Execute(cloned);
 
-                if (enumerable == null)
-                    continue;
+                    if (enumerable == null)
+                        continue;
 
-                IEnumerator<Row> enumerator = enumerable.GetEnumerator();
+                    IAsyncEnumerator<Row> enumerator = enumerable.GetAsyncEnumerator();
 #pragma warning disable 642
-                while (enumerator.MoveNext()) ;
+                    while (await enumerator.MoveNextAsync()) ;
 #pragma warning restore 642
-            }
-            yield break;
+                }
+                yield.Break();
+            });
         }
     }
 }

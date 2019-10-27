@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests.Dsl
@@ -18,10 +19,10 @@ namespace Rhino.Etl.Tests.Dsl
         }
 
         [Fact]
-        public void CanCopyTableWithTransform()
+        public async Task CanCopyTableWithTransform()
         {
             using(EtlProcess process = CreateDslInstance("Dsl/UsersToPeople.boo"))
-                process.Execute();
+                await process.Execute();
 
             List<string[]> names = Use.Transaction<List<string[]>>("test", delegate(IDbCommand cmd)
             {

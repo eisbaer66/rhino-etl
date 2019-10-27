@@ -109,7 +109,7 @@ namespace Rhino.Etl.Tests.Joins
 
     public class TestAbstractJoinOperation : JoinOperation
     {
-        public override    IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
         {
             throw new NotImplementedException();
         }

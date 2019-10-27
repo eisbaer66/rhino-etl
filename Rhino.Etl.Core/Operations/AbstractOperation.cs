@@ -102,7 +102,7 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">The rows.</param>
         /// <returns></returns>
-        public abstract IEnumerable<Row> Execute(IEnumerable<Row> rows);
+        public abstract IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows);
 
         ///<summary>
         ///Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

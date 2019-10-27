@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Bootstrap
 {
     using System;
@@ -8,13 +11,14 @@ namespace Rhino.Etl.Bootstrap
     {
         private readonly ILog log = LogProvider.GetCurrentClassLogger();
 
-        public void Start(Type type, bool verboseLogging, Action<bool> setupLogging)
+        public async Task Start(Type type, bool verboseLogging, Action<bool> setupLogging,
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 setupLogging(verboseLogging);
                 EtlProcess process = (EtlProcess)Activator.CreateInstance(type);
-                process.Execute();
+                await process.Execute(cancellationToken);
                 foreach (Exception error in process.GetAllErrors())
                 {
                     log.ErrorException(error.Message, error);

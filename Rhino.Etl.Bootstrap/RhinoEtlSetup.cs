@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Bootstrap
 {
     using System;
@@ -19,7 +22,7 @@ namespace Rhino.Etl.Bootstrap
         }
 
 
-        public void Execute(string[] args)
+        public async Task Execute(string[] args, CancellationToken cancellationToken = default)
         {
             RhinoEtlCommandLineOptions options = new RhinoEtlCommandLineOptions();
             try
@@ -32,10 +35,10 @@ namespace Rhino.Etl.Bootstrap
                 options.PrintOptions();
                 return;
             }
-            Execute(options);
+            await Execute(options, cancellationToken);
         }
 
-        public void Execute(RhinoEtlCommandLineOptions options)
+        public async Task Execute(RhinoEtlCommandLineOptions options, CancellationToken cancellationToken = default)
         {
             setupLogging(options.Verbose);
 
@@ -51,7 +54,7 @@ namespace Rhino.Etl.Bootstrap
                 processType = GetFromDslFile(options.File);
             }
 
-            ExecuteProcessInSeparateAppDomain(processType, options);
+            await ExecuteProcessInSeparateAppDomain(processType, options, cancellationToken);
         }
 
         private static Type GetFromAssembly(RhinoEtlCommandLineOptions options)
@@ -76,7 +79,8 @@ namespace Rhino.Etl.Bootstrap
             return processType;
         }
 
-        private void ExecuteProcessInSeparateAppDomain(Type processType, RhinoEtlCommandLineOptions options)
+        private async Task ExecuteProcessInSeparateAppDomain(Type processType, RhinoEtlCommandLineOptions options,
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -91,7 +95,7 @@ namespace Rhino.Etl.Bootstrap
                 appDomain.Load(processType.Assembly.GetName());
                 RhinoEtlRunner runner = (RhinoEtlRunner)appDomain.CreateInstanceAndUnwrap(typeof (RhinoEtlRunner).Assembly.GetName().FullName,
                                                                                           typeof (RhinoEtlRunner).FullName);
-                runner.Start(processType, options.Verbose, setupLogging);
+                await runner.Start(processType, options.Verbose, setupLogging, cancellationToken);
             }
             catch (Exception e)
             {
