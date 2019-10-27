@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 
@@ -43,8 +44,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">Rows in pipeline. These are only used if a left part of the join was not specified.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 PrepareForJoin();
@@ -53,9 +55,9 @@ namespace Rhino.Etl.Core.Operations
                 Guard.Against(leftColumns == null, "You must setup the left columns");
                 Guard.Against(rightColumns == null, "You must setup the right columns");
 
-                IAsyncEnumerable<Row> rightEnumerable = await GetRightEnumerable();
+                IAsyncEnumerable<Row> rightEnumerable = await GetRightEnumerable(cancellationToken);
 
-                IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows);
+                IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows, cancellationToken);
                 foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
                 {
                     ObjectArrayKeys key = leftRow.CreateKey(leftColumns);
@@ -88,14 +90,14 @@ namespace Rhino.Etl.Core.Operations
                         await yield.ReturnAsync(MergeRows(emptyRow, rightRow));
                     else
                         RightOrphanRow(rightRow);
-                });
+                }, cancellationToken);
             });
         }
 
-        private async Task<IAsyncEnumerable<Row>> GetRightEnumerable()
+        private async Task<IAsyncEnumerable<Row>> GetRightEnumerable(CancellationToken cancellationToken = default)
         {
             IAsyncEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
-                new EventRaisingEnumerator(right, right.Execute(null))
+                new EventRaisingEnumerator(right, right.Execute(null, cancellationToken))
                 );
             await rightEnumerable.ForEachAsync(row =>
             {
@@ -107,7 +109,7 @@ namespace Rhino.Etl.Core.Operations
                 }
 
                 rowsForKey.Add(row);
-            });
+            }, cancellationToken);
             return rightEnumerable;
         }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using Xunit;
@@ -67,7 +68,8 @@ namespace Rhino.Etl.Tests
                 this.onExecute = onExecute;
             }
 
-            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows,
+                CancellationToken cancellationToken = default)
             {
                 return new AsyncEnumerable<Row>(yield =>
                 {
@@ -91,12 +93,13 @@ namespace Rhino.Etl.Tests
                 this.onRow = onRow;
             }
 
-            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows,
+                CancellationToken cancellationToken = default)
             {
                 return new AsyncEnumerable<Row>(async yield =>
                 {
                     for (var i = 0; i < numberOfIterations; i++)
-                        await rows.ForEachAsync(r => onRow(r));
+                        await rows.ForEachAsync(r => onRow(r), cancellationToken);
 
                     yield.Break();
                 });

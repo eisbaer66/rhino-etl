@@ -1,4 +1,5 @@
-﻿using Dasync.Collections;
+﻿using System.Threading;
+using Dasync.Collections;
 
 namespace Rhino.Etl.Core.Operations
 {
@@ -15,8 +16,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The pre-sorted rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 ObjectArrayKeys previousKey = null;
@@ -36,7 +38,7 @@ namespace Rhino.Etl.Core.Operations
 
                     await Accumulate(row, aggregate);
                     previousKey = key;
-                });
+                }, cancellationToken);
 
                 await FinishAggregation(aggregate);
                 await yield.ReturnAsync(aggregate);

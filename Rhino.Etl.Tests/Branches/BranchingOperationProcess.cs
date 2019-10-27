@@ -2,6 +2,7 @@
 using Rhino.Etl.Core.Operations;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 
@@ -22,7 +23,7 @@ namespace Rhino.Etl.Tests.Branches
 
     internal class GenerateTuples : AbstractOperation
     {
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 for (int i = 0; i < 2; i++)

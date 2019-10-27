@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace Rhino.Etl.Core.Operations
 {
     using System;
@@ -101,8 +103,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public abstract IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows);
+        public abstract IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default);
 
         ///<summary>
         ///Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

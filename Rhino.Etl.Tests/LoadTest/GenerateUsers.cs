@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 
@@ -15,7 +16,10 @@ namespace Rhino.Etl.Tests.LoadTest
         }
 
         private int expectedCount;
-        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
+
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row>      rows,
+                                                   AsyncEnumerator<Row>.Yield yield,
+                                                   CancellationToken          cancellationToken = default)
         {
             for (int i = 0; i < expectedCount; i++)
             {

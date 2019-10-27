@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
@@ -221,7 +222,7 @@ namespace Rhino.Etl.Core.Operations
         /// <summary>
         /// Executes this operation
         /// </summary>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(yield => {
                 Guard.Against<ArgumentException>(rows == null, "SqlBulkInsertOperation cannot accept a null enumerator");

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using Dasync.Collections;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
@@ -15,7 +16,7 @@ namespace Rhino.Etl.ExternalOperations
             this.max = max;
         }
 
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 int a = 0;

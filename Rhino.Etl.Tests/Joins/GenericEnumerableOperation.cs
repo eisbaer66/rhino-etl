@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using Rhino.Etl.Core;
@@ -15,7 +16,8 @@ namespace Rhino.Etl.Tests.Joins
             rowsToReturn = rows;
         }
 
-        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield yield,
+            CancellationToken cancellationToken = default)
         {
             foreach (Row row in rowsToReturn)
             {

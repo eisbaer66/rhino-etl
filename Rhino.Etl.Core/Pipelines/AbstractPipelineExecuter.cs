@@ -30,7 +30,7 @@ namespace Rhino.Etl.Core.Pipelines
         {
             try
             {
-                IAsyncEnumerable<Row> enumerablePipeline = PipelineToEnumerable(pipeline, new List<Row>().ToAsyncEnumerable(), translateRows);
+                IAsyncEnumerable<Row> enumerablePipeline = PipelineToEnumerable(pipeline, new List<Row>().ToAsyncEnumerable(), translateRows, cancellationToken);
                 try
                 {
                     raiseNotifyExecutionStarting();
@@ -58,16 +58,18 @@ namespace Rhino.Etl.Core.Pipelines
         /// <param name="pipeline">The pipeline.</param>
         /// <param name="rows">The rows</param>
         /// <param name="translateEnumerable">Translate the rows from one representation to another</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
         public virtual IAsyncEnumerable<Row> PipelineToEnumerable(
             ICollection<IOperation> pipeline,
             IAsyncEnumerable<Row> rows,
-            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable)
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable, 
+            CancellationToken cancellationToken = default)
         {
             foreach (var operation in pipeline)
             {
                 operation.PrepareForExecution(this);
-                var enumerator = operation.Execute(rows);
+                var enumerator = operation.Execute(rows, cancellationToken);
                 enumerator = translateEnumerable(enumerator);
                 rows = DecorateEnumerableForExecution(operation, enumerator);
             }

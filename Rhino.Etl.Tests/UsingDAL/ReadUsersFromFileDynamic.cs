@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using FileHelpers;
@@ -25,7 +26,8 @@ namespace Rhino.Etl.Tests.UsingDAL
             _tblClass = userRecordClassBuilder.CreateRecordClass();
         }
 
-        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield yield,
+            CancellationToken cancellationToken = default)
         {
             var file = new FileHelperEngine(_tblClass);
             //var ary = new[] {"one", "two", "three"};

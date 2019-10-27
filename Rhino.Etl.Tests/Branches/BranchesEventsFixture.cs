@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
 using Rhino.Mocks;
@@ -114,7 +115,7 @@ namespace Rhino.Etl.Tests.Branches
 
     public class TestAbstractBranchingOperation    : AbstractBranchingOperation
     {
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

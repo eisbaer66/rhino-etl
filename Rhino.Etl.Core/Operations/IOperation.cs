@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace Rhino.Etl.Core.Operations
 {
     using System;
@@ -47,7 +49,8 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
-        IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows);
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
+        IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Raises the row processed event

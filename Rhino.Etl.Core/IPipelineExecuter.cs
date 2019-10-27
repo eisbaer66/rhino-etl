@@ -30,11 +30,13 @@ namespace Rhino.Etl.Core
         /// <param name="pipeline">The pipeline.</param>
         /// <param name="rows">The rows.</param>
         /// <param name="translateEnumerable">Translate the rows from one representation to another</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
         IAsyncEnumerable<Row> PipelineToEnumerable(
             ICollection<IOperation> pipeline,
             IAsyncEnumerable<Row> rows,
-            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable);
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets all errors that occured under this executer

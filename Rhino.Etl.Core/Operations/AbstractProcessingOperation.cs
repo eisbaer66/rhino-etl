@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 
@@ -15,10 +16,12 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="rows">rows</param>
         /// <param name="yield">yield object for AsyncEnumerable&lt;Row&gt;</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield yield,
+            CancellationToken cancellationToken = default)
         {
-            ; await rows.ForEachAsync(r => ExecuteAsync(r, yield));
+            ; await rows.ForEachAsync(r => ExecuteAsync(r, yield), cancellationToken);
         }
 
         /// <summary>

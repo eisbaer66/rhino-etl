@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Threading;
 using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
 
@@ -58,8 +59,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 Guard.Against<ArgumentException>(rows == null, "SqlBatchOperation cannot accept a null enumerator");
@@ -88,7 +90,7 @@ namespace Rhino.Etl.Core.Operations
                             commandSet.ExecuteNonQuery();
                             CreateCommandSet(connection, transaction, ref commandSet, timeout);
                         }
-                    });
+                    }, cancellationToken);
                     Debug("Executing final batch of {CountOfCommands} commands", commandSet.CountOfCommands);
                     commandSet.ExecuteNonQuery();
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using Rhino.Etl.Core;
@@ -112,7 +113,8 @@ namespace Rhino.Etl.Tests.Joins
 
             List<Row> returnRows = null;
 
-            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows,
+                CancellationToken cancellationToken = default)
             {
                 return new AsyncEnumerable<Row>(async yield =>
                 {
@@ -120,7 +122,7 @@ namespace Rhino.Etl.Tests.Joins
                     {
                         returnRows.Add(r);
                         await yield.ReturnAsync(r);
-                    });
+                    }, cancellationToken);
 
                 });
             }

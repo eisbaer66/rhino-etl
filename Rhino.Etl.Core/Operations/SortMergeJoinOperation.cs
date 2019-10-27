@@ -1,4 +1,5 @@
-﻿using Dasync.Collections;
+﻿using System.Threading;
+using Dasync.Collections;
 
 namespace Rhino.Etl.Core.Operations
 {
@@ -46,8 +47,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">Rows in pipeline. These are only used if a left part of the join was not specified.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 Initialize();
@@ -55,11 +57,11 @@ namespace Rhino.Etl.Core.Operations
                 Guard.Against(left == null, "Left branch of a join cannot be null");
                 Guard.Against(right == null, "Right branch of a join cannot be null");
 
-                IEnumerator leftRows = new EventRaisingEnumerator(left, left.Execute(leftRegistered ? null : rows)).GetEnumerator();
+                IEnumerator leftRows = new EventRaisingEnumerator(left, left.Execute(leftRegistered ? null : rows, cancellationToken)).GetEnumerator();
                 leftRows.MoveNext();
                 Row leftRow = (Row) leftRows.Current;
 
-                IEnumerator rightRows = new EventRaisingEnumerator(right, right.Execute(null)).GetEnumerator();
+                IEnumerator rightRows = new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)).GetEnumerator();
                 rightRows.MoveNext();
                 Row rightRow = (Row) rightRows.Current;
 

@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using Rhino.Etl.Core.Enumerables;
@@ -35,8 +36,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>( yield => {
                 using (IDbConnection connection = Use.Connection(ConnectionStringSettings))

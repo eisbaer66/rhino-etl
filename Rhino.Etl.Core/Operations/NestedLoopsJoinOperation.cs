@@ -1,3 +1,4 @@
+using System.Threading;
 using Dasync.Collections;
 
 namespace Rhino.Etl.Core.Operations
@@ -40,17 +41,18 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">Rows in pipeline. These are only used if a left part of the join was not specified.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 PrepareForJoin();
 
                 Dictionary<Row, object> matchedRightRows = new Dictionary<Row, object>();
                 CachingEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
-                    new EventRaisingEnumerator(right, right.Execute(null))
+                    new EventRaisingEnumerator(right, right.Execute(null, cancellationToken))
                     );
-                IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows);
+                IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows, cancellationToken);
                 foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
                 {
                     bool leftNeedOuterJoin = true;

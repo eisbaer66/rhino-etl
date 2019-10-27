@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 
@@ -15,8 +16,9 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
                 IDictionary<ObjectArrayKeys, Row> aggregations = new Dictionary<ObjectArrayKeys, Row>();
@@ -28,7 +30,7 @@ namespace Rhino.Etl.Core.Operations
                     if (aggregations.TryGetValue(key, out aggregate) == false)
                         aggregations[key] = aggregate = new Row();
                     await Accumulate(row, aggregate);
-                });
+                }, cancellationToken);
                 foreach (Row row in aggregations.Values)
                 {
                     await FinishAggregation(row);

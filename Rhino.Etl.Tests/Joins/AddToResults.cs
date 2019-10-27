@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 
@@ -16,9 +17,10 @@ namespace Rhino.Etl.Tests.Joins
             this.results = results;
         }
 
-        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield @yield)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield yield,
+            CancellationToken cancellationToken = default)
         {
-            await rows.ForEachAsync(row => { results.Add(row); });
+            await rows.ForEachAsync(row => { results.Add(row); }, cancellationToken);
         }
     }
 }
