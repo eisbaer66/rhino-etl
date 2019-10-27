@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
@@ -40,18 +41,18 @@ namespace Rhino.Etl.Core.Operations
         /// <returns></returns>
         public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            return new AsyncEnumerable<Row>( yield => {
-                using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
-                using (IDbTransaction transaction = BeginTransaction(connection))
+            return new AsyncEnumerable<Row>(async yield => {
+                using (DbConnection connection = await Use.Connection(ConnectionStringSettings, cancellationToken))
+                using (DbTransaction transaction = BeginTransaction(connection))
                 {
                     foreach (Row row in new SingleRowEventRaisingEnumerator(this, rows))
                     {
-                        using (IDbCommand cmd = connection.CreateCommand())
+                        using (DbCommand cmd = connection.CreateCommand())
                         {
                             currentCommand = cmd;
                             currentCommand.Transaction = transaction;
                             PrepareCommand(currentCommand, row);
-                            currentCommand.ExecuteNonQuery();
+                            await currentCommand.ExecuteNonQueryAsync(cancellationToken);
                         }
                     }
                     if (PipelineExecuter.HasErrors)
@@ -68,8 +69,6 @@ namespace Rhino.Etl.Core.Operations
                     }
                 }
                 yield.Break();
-
-                return Task.CompletedTask;
             });
         }
 

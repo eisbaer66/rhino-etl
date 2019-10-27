@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
@@ -12,25 +13,29 @@ namespace Rhino.Etl.Tests.Dsl
     public class DatabaseToDatabaseWithTransformFixture : BaseUserToPeopleTest
     {
         [Fact]
-        public void CanCompile()
+        public async Task CanCompile()
         {
-            using(EtlProcess process = CreateDslInstance("Dsl/UsersToPeople.boo"))
+            await SetupTables();
+
+            using (EtlProcess process = CreateDslInstance("Dsl/UsersToPeople.boo"))
                 Assert.NotNull(process);
         }
 
         [Fact]
         public async Task CanCopyTableWithTransform()
         {
-            using(EtlProcess process = CreateDslInstance("Dsl/UsersToPeople.boo"))
+            await SetupTables();
+
+            using (EtlProcess process = CreateDslInstance("Dsl/UsersToPeople.boo"))
                 await process.Execute();
 
-            List<string[]> names = Use.Transaction<List<string[]>>("test", delegate(IDbCommand cmd)
+            List<string[]> names = await Use.Transaction<List<string[]>>("test", async delegate(DbCommand cmd)
             {
                 List<string[]> tuples = new List<string[]>();
                 cmd.CommandText = "SELECT firstname, lastname from people order by userid";
-                using (IDataReader reader = cmd.ExecuteReader())
+                using (DbDataReader reader = await cmd.ExecuteReaderAsync())
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         tuples.Add(new string[] { reader.GetString(0), reader.GetString(1) });
                     }

@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
@@ -13,30 +14,34 @@ namespace Rhino.Etl.Tests.Dsl
     public class JoinFixture : BaseUserToPeopleTest
     {
         [Fact]
-        public void CanCompile()
+        public async Task CanCompile()
         {
-            using(EtlProcess process = CreateDslInstance("Dsl/InnerJoin.boo"))
+            await SetupTables();
+
+            using (EtlProcess process = CreateDslInstance("Dsl/InnerJoin.boo"))
                 Assert.NotNull(process);
         }
 
         [Fact]
         public async Task CanWriteJoinsToDatabase()
         {
-            using(EtlProcess process = CreateDslInstance("Dsl/InnerJoin.boo"))
+            await SetupTables();
+
+            using (EtlProcess process = CreateDslInstance("Dsl/InnerJoin.boo"))
                 await process.Execute();
             List<string> roles = new List<string>();
-            Use.Transaction("test", delegate(IDbCommand command)
+            await Use.Transaction("test", async delegate(DbCommand command)
             {
                 command.CommandText = @"
                                 SELECT Roles FROM Users
                                 WHERE Roles IS NOT NULL
                                 ORDER BY Id
                 ";
-                using(IDataReader reader = command.ExecuteReader())
-                while(reader.Read())
-                {
-                    roles.Add(reader.GetString(0));
-                }
+                using(DbDataReader reader = await command.ExecuteReaderAsync())
+                    while(await reader.ReadAsync())
+                    {
+                        roles.Add(reader.GetString(0));
+                    }
             });
             Assert.Equal("ayende rahien is: admin, janitor, employee, customer", roles[0]);
             Assert.Equal("foo bar is: janitor", roles[1]);

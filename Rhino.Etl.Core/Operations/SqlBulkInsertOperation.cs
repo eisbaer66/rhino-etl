@@ -224,23 +224,23 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            return new AsyncEnumerable<Row>(yield => {
+            return new AsyncEnumerable<Row>(async yield => {
                 Guard.Against<ArgumentException>(rows == null, "SqlBulkInsertOperation cannot accept a null enumerator");
                 PrepareSchema();
                 PrepareMapping();
                 CreateInputSchema();
-                using (SqlConnection connection = (SqlConnection)Use.Connection(ConnectionStringSettings))
+                using (SqlConnection connection = (SqlConnection)await Use.Connection(ConnectionStringSettings, cancellationToken))
                 using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
                 {
                     sqlBulkCopy = CreateSqlBulkCopy(connection, transaction);
                     DictionaryEnumeratorDataReader adapter = new DictionaryEnumeratorDataReader(_inputSchema, rows, cancellationToken);
                     try
                     {
-                        sqlBulkCopy.WriteToServer(adapter);
+                        await sqlBulkCopy.WriteToServerAsync(adapter, cancellationToken);
                     }
                     catch (InvalidOperationException)
                     {
-                        CompareSqlColumns(connection, transaction, rows);
+                        await CompareSqlColumns(connection, transaction, rows, cancellationToken);
                         throw;
                     }
 
@@ -256,9 +256,8 @@ namespace Rhino.Etl.Core.Operations
                         if (transaction != null) transaction.Commit();
                         Debug("Committed {OperationName}", Name);
                     }
-                    }
+                }
                 yield.Break();
-                return Task.CompletedTask;
             });
         }
 
@@ -293,14 +292,17 @@ namespace Rhino.Etl.Core.Operations
             return copy;
         }
 
-        private void CompareSqlColumns(SqlConnection connection, SqlTransaction transaction, IAsyncEnumerable<Row> rows)
+        private async Task CompareSqlColumns(SqlConnection         connection,
+                                             SqlTransaction        transaction,
+                                             IAsyncEnumerable<Row> rows,
+                                             CancellationToken     cancellationToken = default)
         {
             var command = connection.CreateCommand();
             command.CommandText = "select * from {TargetTable} where 1=0".Replace("{TargetTable}", TargetTable);
             command.CommandType = CommandType.Text;
             command.Transaction = transaction;
 
-            using (var reader = command.ExecuteReader(CommandBehavior.KeyInfo))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.KeyInfo, cancellationToken))
             {
                 var schemaTable = reader.GetSchemaTable();
                 var databaseColumns = schemaTable.Rows
@@ -341,7 +343,7 @@ namespace Rhino.Etl.Core.Operations
                             ));
 
                 var list = new List<dynamic>();
-                rows.ForEachAsync(row =>
+                await rows.ForEachAsync(row =>
                 {
                     foreach (var column in databaseColumns)
                     {
@@ -355,7 +357,7 @@ namespace Rhino.Etl.Core.Operations
                                 list.Add(new {column.Name, column.MaxLength, Value = value});
                         }
                     }
-                });
+                }, cancellationToken);
 
                 var stringsTooLong =
                     list

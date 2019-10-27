@@ -13,24 +13,30 @@ namespace Rhino.Etl.Tests
         [Fact]
         public async Task CanInsertToDatabaseFromInMemoryCollection()
         {
+            await EnsureFibonacciTableExists();
+
             OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(25, Should.WorkFine);
             await fibonaci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
         public async Task CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
         {
+            await EnsureFibonacciTableExists();
+
             OutputFibonacciToDatabaseFromConnectionStringSettings fibonaci = new OutputFibonacciToDatabaseFromConnectionStringSettings(25, Should.WorkFine);
             await fibonaci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
         public async Task WillRaiseRowProcessedEvent()
         {
+            await EnsureFibonacciTableExists();
+
             int rowsProcessed = 0;
 
             using (OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(1, Should.WorkFine))
@@ -45,6 +51,8 @@ namespace Rhino.Etl.Tests
         [Fact]
         public async Task WillRaiseRowProcessedEventUntilItThrows()
         {
+            await EnsureFibonacciTableExists();
+
             int rowsProcessed = 0;
 
             using (OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(25, Should.Throw))
@@ -59,6 +67,8 @@ namespace Rhino.Etl.Tests
         [Fact]
         public async Task WillRaiseFinishedProcessingEventOnce()
         {
+            await EnsureFibonacciTableExists();
+
             int finished = 0;
 
             using (OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(1, Should.WorkFine))
@@ -73,10 +83,12 @@ namespace Rhino.Etl.Tests
         [Fact]
         public async Task WhenErrorIsThrownWillRollbackTransaction()
         {
+            await EnsureFibonacciTableExists();
+
             OutputFibonacciToDatabase fibonaci = new OutputFibonacciToDatabase(25, Should.Throw);
             await fibonaci.Execute();
             Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
-            AssertFibonacciTableEmpty();
+            await AssertFibonacciTableEmpty();
         }
     }
 }

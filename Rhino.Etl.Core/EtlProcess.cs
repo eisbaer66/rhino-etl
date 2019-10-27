@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
@@ -133,10 +134,13 @@ namespace Rhino.Etl.Core
         /// <typeparam name="T"></typeparam>
         /// <param name="connectionName">Name of the connection.</param>
         /// <param name="commandText">The command text.</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns></returns>
-        protected static T ExecuteScalar<T>(string connectionName, string commandText)
+        protected static async Task<T> ExecuteScalar<T>(string            connectionName,
+                                            string            commandText,
+                                            CancellationToken cancellationToken = default)
         {
-            return ExecuteScalar<T>(ConfigurationManager.ConnectionStrings[connectionName], commandText);
+            return await ExecuteScalar<T>(ConfigurationManager.ConnectionStrings[connectionName], commandText, cancellationToken);
         }
 
         /// <summary>
@@ -145,15 +149,20 @@ namespace Rhino.Etl.Core
         /// <typeparam name="T"></typeparam>
         /// <param name="connectionStringSettings">The connection string settings node to use</param>
         /// <param name="commandText">The command text.</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns></returns>
-        protected static T ExecuteScalar<T>(ConnectionStringSettings connectionStringSettings, string commandText)
+        protected static async Task<T> ExecuteScalar<T>(ConnectionStringSettings connectionStringSettings,
+                                                        string                   commandText,
+                                                        CancellationToken        cancellationToken = default)
         {
-            return Use.Transaction<T>(connectionStringSettings, delegate(IDbCommand cmd)
-            {
-                cmd.CommandText = commandText;
-                object scalar = cmd.ExecuteScalar();
-                return (T)(scalar ?? default(T));
-            });
+            return await Use.Transaction<T>(connectionStringSettings,
+                                            async delegate(DbCommand cmd)
+                                            {
+                                                cmd.CommandText = commandText;
+                                                object scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+                                                return (T) (scalar ?? default(T));
+                                            },
+                                            cancellationToken);
         }
 
         /// <summary>

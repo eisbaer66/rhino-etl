@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
@@ -17,16 +18,18 @@ namespace Rhino.Etl.Tests.Integration
         [Fact]
         public async Task CanCopyTableWithTransform()
         {
-            using(UsersToPeople process = new UsersToPeople())
+            await SetupTables();
+
+            using (UsersToPeople process = new UsersToPeople())
                 await process.Execute();
             
-            System.Collections.Generic.List<string[]> names = Use.Transaction<System.Collections.Generic.List<string[]>>("test", delegate(IDbCommand cmd)
+            System.Collections.Generic.List<string[]> names = await Use.Transaction("test", async delegate(DbCommand cmd)
             {
                 System.Collections.Generic.List<string[]> tuples = new System.Collections.Generic.List<string[]>();
                 cmd.CommandText = "SELECT firstname, lastname from people order by userid";
-                using (IDataReader reader = cmd.ExecuteReader())
+                using (DbDataReader reader = await cmd.ExecuteReaderAsync())
                 {
-                    while(reader.Read())
+                    while(await reader.ReadAsync())
                     {
                         tuples.Add(new string[] { reader.GetString(0), reader.GetString(1) });
                     }
@@ -39,16 +42,18 @@ namespace Rhino.Etl.Tests.Integration
         [Fact]
         public async Task CanCopyTableWithTransformFromConnectionStringSettings()
         {
+            await SetupTables();
+
             using (UsersToPeopleFromConnectionStringSettings process = new UsersToPeopleFromConnectionStringSettings())
                 await process.Execute();
 
-            System.Collections.Generic.List<string[]> names = Use.Transaction<System.Collections.Generic.List<string[]>>("test", delegate(IDbCommand cmd)
+            System.Collections.Generic.List<string[]> names = await Use.Transaction("test", async delegate(DbCommand cmd)
             {
                 System.Collections.Generic.List<string[]> tuples = new System.Collections.Generic.List<string[]>();
                 cmd.CommandText = "SELECT firstname, lastname from people order by userid";
-                using (IDataReader reader = cmd.ExecuteReader())
+                using (DbDataReader reader = await cmd.ExecuteReaderAsync())
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         tuples.Add(new string[] { reader.GetString(0), reader.GetString(1) });
                     }

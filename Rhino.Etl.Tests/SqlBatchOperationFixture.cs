@@ -14,37 +14,45 @@ namespace Rhino.Etl.Tests
         [Fact]
         public async Task CanInsertToDatabaseFromInMemoryCollection()
         {
+            await EnsureFibonacciTableExists();
+
             BatchFibonacci fibonaci = new BatchFibonacci(25,Should.WorkFine);
             await fibonaci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
         public async Task CanInsertToDatabaseFromInMemoryCollectionWithSlowOperation()
         {
+            await EnsureFibonacciTableExists();
+
             var fibonaci = new SlowBatchFibonacci(25, Should.WorkFine);
             await fibonaci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
         public async Task CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
         {
+            await EnsureFibonacciTableExists();
+
             BatchFibonacciFromConnectionStringSettings fibonaci = new BatchFibonacciFromConnectionStringSettings(25, Should.WorkFine);
             await fibonaci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
         public async Task WhenErrorIsThrownWillRollbackTransaction()
         {
+            await EnsureFibonacciTableExists();
+
             BatchFibonacci fibonaci = new BatchFibonacci(25, Should.Throw);
             await fibonaci.Execute();
             Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
-            AssertFibonacciTableEmpty();
+            await AssertFibonacciTableEmpty();
         }
     }
 }

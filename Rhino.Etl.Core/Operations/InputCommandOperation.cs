@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Data.Common;
 using System.Threading;
 using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
@@ -41,16 +42,16 @@ namespace Rhino.Etl.Core.Operations
         public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
-                using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
-                using (IDbTransaction transaction = BeginTransaction(connection))
+                using (DbConnection connection = await Use.Connection(ConnectionStringSettings, cancellationToken))
+                using (DbTransaction transaction = BeginTransaction(connection))
                 {
                     using (currentCommand = connection.CreateCommand())
                     {
                         currentCommand.Transaction = transaction;
                         PrepareCommand(currentCommand);
-                        using (IDataReader reader = currentCommand.ExecuteReader())
+                        using (DbDataReader reader = await currentCommand.ExecuteReaderAsync(cancellationToken))
                         {
-                            while (reader.Read())
+                            while (await reader.ReadAsync(cancellationToken))
                             {
                                 await yield.ReturnAsync(CreateRowFromReader(reader));
                             }

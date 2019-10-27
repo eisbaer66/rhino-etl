@@ -1,6 +1,8 @@
 using System;
 using System.Configuration;
 using System.Data;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Rhino.Etl.Core.Infrastructure
 {
@@ -18,12 +20,12 @@ namespace Rhino.Etl.Core.Infrastructure
         /// Delegate to execute an action with a command
         /// and return a result: <typeparam name="T"/>
         /// </summary>
-        public delegate T Func<T>(IDbCommand command);
+        public delegate Task<T> Func<T>(DbCommand command);
 
         /// <summary>
         /// Delegate to execute an action with a command
         /// </summary>
-        public delegate void Proc(IDbCommand command);
+        public delegate Task Proc(DbCommand command);
 
         #endregion
 
@@ -32,14 +34,14 @@ namespace Rhino.Etl.Core.Infrastructure
         /// </summary>
         /// <value>The active connection.</value>
         [ThreadStatic]
-        private static IDbConnection ActiveConnection;
+        private static DbConnection ActiveConnection;
 
         /// <summary>
         /// Gets or sets the active transaction.
         /// </summary>
         /// <value>The active transaction.</value>
         [ThreadStatic] 
-        private static IDbTransaction ActiveTransaction;
+        private static DbTransaction ActiveTransaction;
 
         /// <summary>
         /// Gets or sets the transaction counter.
@@ -55,8 +57,11 @@ namespace Rhino.Etl.Core.Infrastructure
         /// <typeparam name="T"></typeparam>
         /// <param name="connectionStringName">The name of the named connection string in the configuration file</param>
         /// <param name="actionToExecute">The action to execute</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns></returns>
-        public static T Transaction<T>(string connectionStringName, Func<T> actionToExecute)
+        public static async Task<T> Transaction<T>(string            connectionStringName,
+                                                   Func<T>           actionToExecute,
+                                                   CancellationToken cancellationToken = default)
         {
             T result = default(T);
 
@@ -64,7 +69,7 @@ namespace Rhino.Etl.Core.Infrastructure
             if (connectionStringSettings == null)
                 throw new InvalidOperationException("Could not find connnection string: " + connectionStringName);
 
-            Transaction(connectionStringSettings, delegate(IDbCommand command) { result = actionToExecute(command); });
+            await Transaction(connectionStringSettings, async delegate(DbCommand command) { result = await actionToExecute(command); }, cancellationToken);
             return result;
         }
 
@@ -75,11 +80,14 @@ namespace Rhino.Etl.Core.Infrastructure
         /// <typeparam name="T"></typeparam>
         /// <param name="connectionStringSettings">The connection string settings to use for the connection</param>
         /// <param name="actionToExecute">The action to execute</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns></returns>
-        public static T Transaction<T>(ConnectionStringSettings connectionStringSettings, Func<T> actionToExecute)
+        public static async Task<T> Transaction<T>(ConnectionStringSettings connectionStringSettings,
+                                                   Func<T>                  actionToExecute,
+                                                   CancellationToken        cancellationToken = default)
         {
             T result = default(T);
-            Transaction(connectionStringSettings, delegate(IDbCommand command) { result = actionToExecute(command); });
+            await Transaction(connectionStringSettings, async delegate(DbCommand command) { result = await actionToExecute(command); }, cancellationToken);
             return result;
         }
 
@@ -88,13 +96,16 @@ namespace Rhino.Etl.Core.Infrastructure
         /// </summary>
         /// <param name="connectionStringName">Name of the connection string.</param>
         /// <param name="actionToExecute">The action to execute.</param>
-        public static void Transaction(string connectionStringName, Proc actionToExecute)
+        /// <param name="cancellationToken">The cancellation instruction.</param>
+        public static async Task Transaction(string            connectionStringName,
+                                             Proc              actionToExecute,
+                                             CancellationToken cancellationToken = default)
         {
             ConnectionStringSettings connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionStringName];
             if (connectionStringSettings == null)
-                throw new InvalidOperationException("Could not find connnection string: " + connectionStringName);
+                throw new InvalidOperationException("Could not find connection string: " + connectionStringName);
 
-            Transaction(connectionStringSettings, IsolationLevel.Unspecified, actionToExecute);
+            await Transaction(connectionStringSettings, IsolationLevel.Unspecified, actionToExecute, cancellationToken);
         }
 
         /// <summary>
@@ -102,9 +113,12 @@ namespace Rhino.Etl.Core.Infrastructure
         /// </summary>
         /// <param name="connectionStringSettings">The connection string settings to use for the connection</param>
         /// <param name="actionToExecute">The action to execute.</param>
-        public static void Transaction(ConnectionStringSettings connectionStringSettings, Proc actionToExecute)
+        /// <param name="cancellationToken">The cancellation instruction.</param>
+        public static async Task Transaction(ConnectionStringSettings connectionStringSettings,
+                                             Proc                     actionToExecute,
+                                             CancellationToken        cancellationToken = default)
         {
-            Transaction(connectionStringSettings, IsolationLevel.Unspecified, actionToExecute);
+            await Transaction(connectionStringSettings, IsolationLevel.Unspecified, actionToExecute, cancellationToken);
         }
 
         /// <summary>
@@ -114,13 +128,17 @@ namespace Rhino.Etl.Core.Infrastructure
         /// <param name="connectionStringName">Name of the connection string.</param>
         /// <param name="isolationLevel">The isolation level.</param>
         /// <param name="actionToExecute">The action to execute.</param>
-        public static void Transaction(string connectionStringName, IsolationLevel isolationLevel, Proc actionToExecute)
+        /// <param name="cancellationToken">The cancellation instruction.</param>
+        public static async Task Transaction(string            connectionStringName,
+                                             IsolationLevel    isolationLevel,
+                                             Proc              actionToExecute,
+                                             CancellationToken cancellationToken = default)
         {
             ConnectionStringSettings connectionStringSettings = ConfigurationManager.ConnectionStrings[connectionStringName];
             if (connectionStringSettings == null)
-                throw new InvalidOperationException("Could not find connnection string: " + connectionStringName);
+                throw new InvalidOperationException("Could not find connection string: " + connectionStringName);
 
-            Transaction(connectionStringSettings, isolationLevel, actionToExecute);
+            await Transaction(connectionStringSettings, isolationLevel, actionToExecute, cancellationToken);
         }
 
         /// <summary>
@@ -130,15 +148,19 @@ namespace Rhino.Etl.Core.Infrastructure
         /// <param name="connectionStringSettings">Connection string settings node to use for the connection</param>
         /// <param name="isolationLevel">The isolation level.</param>
         /// <param name="actionToExecute">The action to execute.</param>
-        public static void Transaction(ConnectionStringSettings connectionStringSettings, IsolationLevel isolationLevel, Proc actionToExecute)
+        /// <param name="cancellationToken">The cancellation instruction.</param>
+        public static async Task Transaction(ConnectionStringSettings connectionStringSettings,
+                                             IsolationLevel           isolationLevel,
+                                             Proc                     actionToExecute,
+                                             CancellationToken        cancellationToken = default)
         {
-            StartTransaction(connectionStringSettings, isolationLevel);
+            await StartTransaction(connectionStringSettings, isolationLevel, cancellationToken);
             try
             {
-                using (IDbCommand command = ActiveConnection.CreateCommand())
+                using (DbCommand command = ActiveConnection.CreateCommand())
                 {
                     command.Transaction = ActiveTransaction;
-                    actionToExecute(command);
+                    await actionToExecute(command);
                 }
                 CommitTransaction();
             }
@@ -195,12 +217,15 @@ namespace Rhino.Etl.Core.Infrastructure
         /// </summary>
         /// <param name="connectionStringSettings">The connection string settings to use for the transaction</param>
         /// <param name="isolation">The isolation.</param>
-        private static void StartTransaction(ConnectionStringSettings connectionStringSettings, IsolationLevel isolation)
+        /// <param name="cancellationToken">The cancellation instruction.</param>
+        private static async Task StartTransaction(ConnectionStringSettings connectionStringSettings,
+                                                   IsolationLevel           isolation,
+                                                   CancellationToken        cancellationToken = default)
         {
             if (TransactionCounter <= 0)
             {
                 TransactionCounter = 0;
-                ActiveConnection = Connection(connectionStringSettings);
+                ActiveConnection = await Connection(connectionStringSettings, cancellationToken);
                 ActiveTransaction = ActiveConnection.BeginTransaction(isolation);
             }
             TransactionCounter++;
@@ -211,14 +236,15 @@ namespace Rhino.Etl.Core.Infrastructure
         /// to select the proper implementation
         /// </summary>
         /// <param name="name">The name.</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns>The open connection</returns>
-        public static IDbConnection Connection(string name)
+        public static async Task<DbConnection> Connection(string name, CancellationToken cancellationToken = default)
         {
             ConnectionStringSettings connectionString = ConfigurationManager.ConnectionStrings[name];
             if (connectionString == null)
                 throw new InvalidOperationException("Could not find connnection string: " + name);
 
-            return Connection(connectionString);
+            return await Connection(connectionString, cancellationToken);
         }
 
         /// <summary>
@@ -226,34 +252,23 @@ namespace Rhino.Etl.Core.Infrastructure
         /// name of select the proper implementation
         /// </summary>
         /// <param name="connectionString">ConnectionStringSetting node</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns>The open connection</returns>
-        public static IDbConnection Connection(ConnectionStringSettings connectionString)
+        public static async Task<DbConnection> Connection(ConnectionStringSettings connectionString,
+                                                          CancellationToken        cancellationToken = default)
         {
             if (connectionString == null)
                 throw new InvalidOperationException("Null ConnectionStringSettings specified");
             if (connectionString.ProviderName == null)
                 throw new InvalidOperationException("Null ProviderName specified");
 
-            IDbConnection connection = null;
-
             string providerName = connectionString.ProviderName;
-            if (providerName != null)
-            {
-                // Backwards compatibility: ProviderName could be an assembly qualified connection type name.
-                Type connectionType = Type.GetType(providerName);
-                if (connectionType != null)
-                {
-                    connection = Activator.CreateInstance(connectionType) as IDbConnection;
-                }
-            }
+            DbConnection connection = DbProviderFactories.GetFactory(providerName).CreateConnection();
             if (connection == null)
-            {
-                // ADO.NET compatible usage of provider name.
-                connection = DbProviderFactories.GetFactory(providerName).CreateConnection();
-            }
+                throw new InvalidOperationException("DbProviderFactories could not create DbConnection from ProviderName " + providerName);
 
             connection.ConnectionString = connectionString.ConnectionString;
-            connection.Open();
+            await connection.OpenAsync(cancellationToken);
             return connection;
         }
     }

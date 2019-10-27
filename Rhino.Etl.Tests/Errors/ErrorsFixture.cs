@@ -14,6 +14,8 @@ namespace Rhino.Etl.Tests.Errors
         [Fact]
         public async Task WillReportErrorsWhenThrown()
         {
+            await EnsureFibonacciTableExists();
+
             using (ErrorsProcess process = new ErrorsProcess())
             {
                 ICollection<Row> results = new List<Row>();
@@ -29,8 +31,10 @@ namespace Rhino.Etl.Tests.Errors
         }
 
         [Fact]
-        public void OutputCommandWillRollbackTransactionOnError()
+        public async Task OutputCommandWillRollbackTransactionOnError()
         {
+            await EnsureFibonacciTableExists();
+
             using (ErrorsProcess process = new ErrorsProcess())
             {
               

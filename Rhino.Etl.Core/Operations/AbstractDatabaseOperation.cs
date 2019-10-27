@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Data.Common;
 
 namespace Rhino.Etl.Core.Operations
 {
@@ -144,7 +145,7 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="connection">The IDbConnection object you are working with</param>
         /// <returns>An open IDbTransaction object or null.</returns>
-        protected IDbTransaction BeginTransaction(IDbConnection connection)
+        protected DbTransaction BeginTransaction(DbConnection connection)
         {
             if (UseTransaction)
             {
