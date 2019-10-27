@@ -24,9 +24,10 @@ namespace Rhino.Etl.Core.Enumerables
         /// Initializes a new instance of the <see cref="CachingEnumerable&lt;T&gt;"/> class.
         /// </summary>
         /// <param name="inner">The inner.</param>
-        public CachingEnumerable(IAsyncEnumerable<T> inner)
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        public CachingEnumerable(IAsyncEnumerable<T> inner, CancellationToken cancellationToken = default)
         {
-            internalEnumerator = inner.GetAsyncEnumerator();
+            internalEnumerator = inner.GetAsyncEnumerator(cancellationToken);
         }
 
         ///<summary>

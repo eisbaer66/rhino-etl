@@ -50,8 +50,7 @@ namespace Rhino.Etl.Core.Operations
 
                 Dictionary<Row, object> matchedRightRows = new Dictionary<Row, object>();
                 CachingEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
-                    new EventRaisingEnumerator(right, right.Execute(null, cancellationToken))
-                    );
+                    new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)), cancellationToken);
                 IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows, cancellationToken);
                 foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
                 {

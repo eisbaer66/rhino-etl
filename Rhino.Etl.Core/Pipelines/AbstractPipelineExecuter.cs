@@ -167,8 +167,12 @@ namespace Rhino.Etl.Core.Pipelines
         ///    <summary>
         /// Add a decorator to the enumerable for additional processing
         /// </summary>
-        /// <param name="operation">The operation.</param>
-        /// <param name="enumerator">The enumerator.</param>
-        protected abstract IAsyncEnumerable<Row> DecorateEnumerableForExecution(IOperation operation, IAsyncEnumerable<Row> enumerator);
+        ///    <param name="operation">The operation.</param>
+        ///    <param name="enumerator">The enumerator.</param>
+        ///    <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        protected abstract IAsyncEnumerable<Row> DecorateEnumerableForExecution(
+            IOperation            operation,
+            IAsyncEnumerable<Row> enumerator,
+            CancellationToken     cancellationToken = default);
     }
 }

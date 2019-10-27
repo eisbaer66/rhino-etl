@@ -22,7 +22,7 @@ namespace Rhino.Etl.Core.Operations
         public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
-                var copiedRows = new CachingEnumerable<Row>(rows);
+                var copiedRows = new CachingEnumerable<Row>(rows, cancellationToken);
 
                 foreach (IOperation operation in Operations)
                 {

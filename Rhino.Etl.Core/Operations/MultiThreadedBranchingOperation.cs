@@ -19,7 +19,7 @@ namespace Rhino.Etl.Core.Operations
         public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
-                var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows);
+                var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows, cancellationToken);
 
                 var sync = new SemaphoreSlim(1, 1);
 

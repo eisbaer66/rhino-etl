@@ -24,18 +24,21 @@ namespace Rhino.Etl.Core.Enumerables
         /// </summary>
         /// <param name="numberOfConsumers">The number of consumers that will be consuming this iterator concurrently</param>
         /// <param name="source">The decorated enumerable that will be iterated and fed one element at a time to all consumers</param>
-        public GatedThreadSafeEnumerator(int numberOfConsumers, IAsyncEnumerable<T> source)
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        public GatedThreadSafeEnumerator(int                 numberOfConsumers,
+                                         IAsyncEnumerable<T> source,
+                                         CancellationToken   cancellationToken = default)
         {
             this.numberOfConsumers = numberOfConsumers;
             consumersLeft = numberOfConsumers;
-            innerEnumerator = source.GetAsyncEnumerator();
+            innerEnumerator = source.GetAsyncEnumerator(cancellationToken);
         }
 
         ///    <summary>
         ///    Get    the    enumerator
         ///    </summary>
         ///    <returns></returns>
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             return this;
         }

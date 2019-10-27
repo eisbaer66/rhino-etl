@@ -96,9 +96,8 @@ namespace Rhino.Etl.Core.Operations
 
         private async Task<IAsyncEnumerable<Row>> GetRightEnumerable(CancellationToken cancellationToken = default)
         {
-            IAsyncEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
-                new EventRaisingEnumerator(right, right.Execute(null, cancellationToken))
-                );
+            IAsyncEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)), 
+                                                                               cancellationToken);
             await rightEnumerable.ForEachAsync(row =>
             {
                 ObjectArrayKeys key = row.CreateKey(rightColumns);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
@@ -32,7 +33,10 @@ namespace Rhino.Etl.Tests
 
     public class TestPipelineExecuter :    AbstractPipelineExecuter
     {
-        protected override IAsyncEnumerable<Row>    DecorateEnumerableForExecution(IOperation operation, IAsyncEnumerable<Row> enumerator)
+        protected override IAsyncEnumerable<Row> DecorateEnumerableForExecution(
+            IOperation            operation,
+            IAsyncEnumerable<Row> enumerator,
+            CancellationToken     cancellationToken = default)
         {
             throw new NotImplementedException();
         }

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace Rhino.Etl.Core.DataReaders
 {
     using System;
@@ -16,10 +18,11 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         /// <param name="schema">The schema.</param>
         /// <param name="enumerable">The enumerator.</param>
-        public DictionaryEnumeratorDataReader(
-            IDictionary<string, Type> schema,
-            IAsyncEnumerable<Row> enumerable)
-            : base(enumerable.GetAsyncEnumerator())
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        public DictionaryEnumeratorDataReader(IDictionary<string, Type> schema,
+                                              IAsyncEnumerable<Row>     enumerable,
+                                              CancellationToken         cancellationToken = default)
+            : base(enumerable.GetAsyncEnumerator(cancellationToken))
         {
             this.enumerable = enumerable;
             foreach (KeyValuePair<string, Type> pair in schema)

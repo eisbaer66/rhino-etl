@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Rhino.Etl.Tests.Util
@@ -20,7 +21,7 @@ namespace Rhino.Etl.Tests.Util
             IAsyncEnumerator<Row> enumerator = mocks.DynamicMock<IAsyncEnumerator<Row>>();
             using(mocks.Record())
             {
-                SetupResult.For(enumerable.GetAsyncEnumerator()).Return(enumerator);
+                SetupResult.For(enumerable.GetAsyncEnumerator(Arg<CancellationToken>.Is.Anything)).Return(enumerator);
                 SetupResult.For(enumerator.DisposeAsync()).Return(new ValueTask());
                 SetupResult.For(((IAsyncDisposable)enumerable).DisposeAsync()).Return(new ValueTask());
             }

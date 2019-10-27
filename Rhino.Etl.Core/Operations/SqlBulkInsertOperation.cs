@@ -233,7 +233,7 @@ namespace Rhino.Etl.Core.Operations
                 using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
                 {
                     sqlBulkCopy = CreateSqlBulkCopy(connection, transaction);
-                    DictionaryEnumeratorDataReader adapter = new DictionaryEnumeratorDataReader(_inputSchema, rows);
+                    DictionaryEnumeratorDataReader adapter = new DictionaryEnumeratorDataReader(_inputSchema, rows, cancellationToken);
                     try
                     {
                         sqlBulkCopy.WriteToServer(adapter);
