@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Pipelines
 {
     using System;
@@ -23,22 +26,25 @@ namespace Rhino.Etl.Core.Pipelines
             CancellationToken     cancellationToken = default)
         {
             ThreadSafeEnumerator<Row> threadedEnumerator = new ThreadSafeEnumerator<Row>();
-            ThreadPool.QueueUserWorkItem(delegate
+            ThreadPool.QueueUserWorkItem(async delegate
             {
                 try
                 {
-                    foreach (Row t in new EventRaisingEnumerator(operation, enumerator))
-                    {
-                        threadedEnumerator.AddItem(t);
-                    }
+                    EventRaisingEnumerator eventRaisingEnumerator = new EventRaisingEnumerator(operation, enumerator);
+                    await eventRaisingEnumerator
+                        .ForEachAsync(t =>
+                                      {
+                                          threadedEnumerator.AddItem(t);
+                                          return Task.CompletedTask;
+                                      });
                 }
                 catch (Exception e)
                 {
                     Error(e, "Failed to execute operation {0}", new Tuple<string, object>("Operation", operation));
                     threadedEnumerator.MarkAsFinished();
-#if DEBUG
-                    throw e;
-#endif
+//#if DEBUG
+//                    throw;
+//#endif
                 }
                 finally
                 {

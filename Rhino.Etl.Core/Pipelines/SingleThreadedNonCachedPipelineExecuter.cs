@@ -21,12 +21,11 @@ namespace Rhino.Etl.Core.Pipelines
                                                                                 IAsyncEnumerable<Row> enumerator,
                                                                                 CancellationToken cancellationToken = default)
         {
-            return new AsyncEnumerable<Row>(async yield => {
-                foreach (Row row in new EventRaisingEnumerator(operation, enumerator))
-                {
-                    await yield.ReturnAsync(row);
-                }
-            });
+            return new AsyncEnumerable<Row>(async yield =>
+                                            {
+                                                await new EventRaisingEnumerator(operation, enumerator)
+                                                    .ForEachAsync(async row => { await yield.ReturnAsync(row); });
+                                            });
         }
     }
 }

@@ -71,7 +71,7 @@ namespace Rhino.Etl.Core.Pipelines
                 operation.PrepareForExecution(this);
                 var enumerator = operation.Execute(rows, cancellationToken);
                 enumerator = translateEnumerable(enumerator);
-                rows = DecorateEnumerableForExecution(operation, enumerator);
+                rows = DecorateEnumerableForExecution(operation, enumerator, cancellationToken);
             }
             return rows;
         }

@@ -57,12 +57,12 @@ namespace Rhino.Etl.Core.Operations
                 Guard.Against(left == null, "Left branch of a join cannot be null");
                 Guard.Against(right == null, "Right branch of a join cannot be null");
 
-                IEnumerator leftRows = new EventRaisingEnumerator(left, left.Execute(leftRegistered ? null : rows, cancellationToken)).GetEnumerator();
-                leftRows.MoveNext();
+                IAsyncEnumerator<Row> leftRows = new EventRaisingEnumerator(left, left.Execute(leftRegistered ? null : rows, cancellationToken)).GetAsyncEnumerator(cancellationToken);
+                await leftRows.MoveNextAsync();
                 Row leftRow = (Row) leftRows.Current;
 
-                IEnumerator rightRows = new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)).GetEnumerator();
-                rightRows.MoveNext();
+                IAsyncEnumerator<Row> rightRows = new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)).GetAsyncEnumerator(cancellationToken);
+                await rightRows.MoveNextAsync();
                 Row rightRow = (Row) rightRows.Current;
 
                 while (leftRow != null || rightRow != null)
@@ -73,10 +73,10 @@ namespace Rhino.Etl.Core.Operations
                     if (match == 0)
                     {
                         mergedRow = MergeRows(leftRow, rightRow);
-                        leftRow = leftRows.MoveNext()
+                        leftRow = await leftRows.MoveNextAsync()
                             ? (Row) leftRows.Current
                             : null;
-                        rightRow = rightRows.MoveNext()
+                        rightRow = await rightRows.MoveNextAsync()
                             ? (Row) rightRows.Current
                             : null;
                     }
@@ -87,7 +87,7 @@ namespace Rhino.Etl.Core.Operations
                         else
                             LeftOrphanRow(leftRow);
 
-                        leftRow = leftRows.MoveNext()
+                        leftRow = await leftRows.MoveNextAsync()
                             ? (Row)leftRows.Current
                             : null;
                     }
@@ -98,7 +98,7 @@ namespace Rhino.Etl.Core.Operations
                         else
                             RightOrphanRow(rightRow);
 
-                        rightRow = rightRows.MoveNext()
+                        rightRow = await rightRows.MoveNextAsync()
                             ? (Row)rightRows.Current
                             : null;
                     }

@@ -58,28 +58,29 @@ namespace Rhino.Etl.Core.Operations
                 IAsyncEnumerable<Row> rightEnumerable = await GetRightEnumerable(cancellationToken);
 
                 IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows, cancellationToken);
-                foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
-                {
-                    ObjectArrayKeys key = leftRow.CreateKey(leftColumns);
-                    List<Row> rightRows;
-                    if (this.rightRowsByJoinKey.TryGetValue(key, out rightRows))
-                    {
-                        foreach (Row rightRow in rightRows)
-                        {
-                            rightRowsWereMatched[rightRow] = null;
-                            await yield.ReturnAsync(MergeRows(leftRow, rightRow));
-                        }
-                    }
-                    else if ((jointype & JoinType.Left) != 0)
-                    {
-                        Row emptyRow = new Row();
-                        await yield.ReturnAsync(MergeRows(leftRow, emptyRow));
-                    }
-                    else
-                    {
-                        LeftOrphanRow(leftRow);
-                    }
-                }
+                await new EventRaisingEnumerator(left, execute)
+                    .ForEachAsync(async leftRow =>
+                                  {
+                                      ObjectArrayKeys key = leftRow.CreateKey(leftColumns);
+                                      List<Row>       rightRows;
+                                      if (this.rightRowsByJoinKey.TryGetValue(key, out rightRows))
+                                      {
+                                          foreach (Row rightRow in rightRows)
+                                          {
+                                              rightRowsWereMatched[rightRow] = null;
+                                              await yield.ReturnAsync(MergeRows(leftRow, rightRow));
+                                          }
+                                      }
+                                      else if ((jointype & JoinType.Left) != 0)
+                                      {
+                                          Row emptyRow = new Row();
+                                          await yield.ReturnAsync(MergeRows(leftRow, emptyRow));
+                                      }
+                                      else
+                                      {
+                                          LeftOrphanRow(leftRow);
+                                      }
+                                  });
 
                 await rightEnumerable.ForEachAsync(async rightRow =>
                 {

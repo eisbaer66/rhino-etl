@@ -94,24 +94,11 @@ namespace Rhino.Etl.Core.Enumerables
         ///A <see cref="T:System.Collections.Generic.IEnumerator`1"></see> that can be used to iterate through the collection.
         ///</returns>
         ///<filterpriority>1</filterpriority>
-        IAsyncEnumerator<Row> IAsyncEnumerable<Row>.GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken)
+        public IAsyncEnumerator<Row> GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken)
         {
             Guard.Against(inner == null, "Null enumerator detected, are you trying to read from the first operation in the process?");
             innerEnumerator = inner.GetAsyncEnumerator(cancellationToken);
             return this;
-        }
-
-        ///<summary>
-        ///Returns an enumerator that iterates through a collection.
-        ///</summary>
-        ///
-        ///<returns>
-        ///An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.
-        ///</returns>
-        ///<filterpriority>2</filterpriority>
-        public IEnumerator GetEnumerator()
-        {
-            return ((IEnumerable<Row>) this).GetEnumerator();
         }
     }
 }

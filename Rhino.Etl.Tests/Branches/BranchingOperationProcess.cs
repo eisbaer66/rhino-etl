@@ -2,6 +2,7 @@
 using Rhino.Etl.Core.Operations;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
@@ -18,6 +19,24 @@ namespace Rhino.Etl.Tests.Branches
                  .Register(new Add(false)))
               .Add(Partial
                  .Register(new Subtract(true))));
+        }
+    }
+    internal class BranchingOperationToStringProcess : EtlProcess
+    {
+        private readonly StringBuilder stringBuilder;
+
+        public BranchingOperationToStringProcess(StringBuilder stringBuilder)
+        {
+            this.stringBuilder = stringBuilder ?? throw new ArgumentNullException(nameof(stringBuilder));
+        }
+        protected override void Initialize()
+        {
+            Register(new GenerateTuples());
+            Register(new BranchingOperation()
+              .Add(Partial
+                 .Register(new ToString(stringBuilder)))
+              .Add(Partial
+                 .Register(new ToString(stringBuilder))));
         }
     }
 
@@ -88,6 +107,22 @@ namespace Rhino.Etl.Tests.Branches
 
             if (withErrors) { Error(new ApplicationException(), "Error in Add"); }
 
+            await yield.ReturnAsync(row);
+        }
+    }
+
+    internal class ToString : AbstractProcessingOperation
+    {
+        private readonly StringBuilder stringBuilder;
+
+        public ToString(StringBuilder stringBuilder)
+        {
+            this.stringBuilder = stringBuilder ?? throw new ArgumentNullException(nameof(stringBuilder));
+        }
+
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield yield)
+        {
+            stringBuilder.Append(row["operation"] + " ");
             await yield.ReturnAsync(row);
         }
     }

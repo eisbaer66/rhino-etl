@@ -1,6 +1,7 @@
 using Rhino.Etl.Core.Enumerables;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Dasync.Collections;
 
 namespace Rhino.Etl.Core.Operations
@@ -24,7 +25,7 @@ namespace Rhino.Etl.Core.Operations
         {
             return new AsyncEnumerable<Row>(async yield => {
                 var copiedRows = new CachingEnumerable<Row>(rows, cancellationToken);
-
+                
                 foreach (IOperation operation in Operations)
                 {
                     var cloned = copiedRows.Select(r => r.Clone());
@@ -35,9 +36,7 @@ namespace Rhino.Etl.Core.Operations
                         continue;
 
                     IAsyncEnumerator<Row> enumerator = enumerable.GetAsyncEnumerator(cancellationToken);
-#pragma warning disable 642
-                    while (await enumerator.MoveNextAsync()) ;
-#pragma warning restore 642
+                    while (await enumerator.MoveNextAsync()) { }
                 }
                 yield.Break();
             });
