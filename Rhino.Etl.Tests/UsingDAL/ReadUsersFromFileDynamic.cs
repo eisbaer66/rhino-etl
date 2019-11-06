@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
 using FileHelpers;
-using FileHelpers.RunTime;
+using FileHelpers.Dynamic;
 
 namespace Rhino.Etl.Tests.UsingDAL
 {
