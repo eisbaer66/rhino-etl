@@ -31,16 +31,16 @@ namespace Rhino.Etl.Core.Operations
 
                     if (previousKey != null && !previousKey.Equals(key))
                     {
-                        await FinishAggregation(aggregate);
+                        FinishAggregation(aggregate);
                         await yield.ReturnAsync(aggregate);
                         aggregate = new Row();
                     }
 
-                    await Accumulate(row, aggregate);
+                    Accumulate(row, aggregate);
                     previousKey = key;
                 }, cancellationToken);
 
-                await FinishAggregation(aggregate);
+                FinishAggregation(aggregate);
                 await yield.ReturnAsync(aggregate);
             });
         }

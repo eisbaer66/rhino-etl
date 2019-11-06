@@ -42,7 +42,7 @@ namespace Rhino.Etl.Core.Operations
         public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             return new AsyncEnumerable<Row>(async yield => {
-                using (DbConnection connection = await Use.Connection(ConnectionStringSettings, cancellationToken))
+                using (DbConnection connection = await Database.Connection(ConnectionStringSettings, cancellationToken))
                 using (DbTransaction transaction = BeginTransaction(connection))
                 {
                     using (currentCommand = connection.CreateCommand())

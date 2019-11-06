@@ -31,7 +31,7 @@ namespace Rhino.Etl.Tests.Dsl
                 ResultsToList operation = new ResultsToList();
                 process.RegisterLast(operation);
                 await process.Execute();
-                Assert.Equal(1, operation.Results.Count);
+                Assert.Single(operation.Results);
                 Assert.Equal("chocolate, sugar, coffee", operation.Results[0]["result"]);
             }
         }
@@ -52,7 +52,7 @@ namespace Rhino.Etl.Tests.Dsl
                 ResultsToList operation = new ResultsToList();
                 process.RegisterLast(operation);
                 await process.Execute();
-                Assert.Equal(1, operation.Results.Count);
+                Assert.Single(operation.Results);
                 Assert.True(File.Exists(@"OnFinishedProcessing.wired"));
 
                 File.Delete(@"OnFinishedProcessing.wired");

@@ -65,7 +65,7 @@ namespace Rhino.Etl.Core.Operations
         {
             return new AsyncEnumerable<Row>(async yield => {
                 Guard.Against<ArgumentException>(rows == null, "SqlBatchOperation cannot accept a null enumerator");
-                using (SqlConnection connection = (SqlConnection)await Use.Connection(ConnectionStringSettings, cancellationToken))
+                using (SqlConnection connection = (SqlConnection)await Database.Connection(ConnectionStringSettings, cancellationToken))
                 using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
                 {
                     SqlCommandSet commandSet = null;

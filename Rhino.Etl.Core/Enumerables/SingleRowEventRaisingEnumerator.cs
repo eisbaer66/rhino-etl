@@ -25,6 +25,7 @@ namespace Rhino.Etl.Core.Enumerables
         /// <param name="inner">The innerEnumerator.</param>
         public SingleRowEventRaisingEnumerator(IOperation operation, IAsyncEnumerable<Row> inner)
         {
+            Guard.Against(inner == null, "Null enumerator detected, are you trying to read from the first operation in the process?");
             this.operation = operation;
             this.inner = inner;
         }

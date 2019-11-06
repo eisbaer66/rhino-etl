@@ -17,7 +17,7 @@ namespace Rhino.Etl.Tests.Aggregation
             {
                 IAsyncEnumerable<Row> result = rowCount.Execute(rows.ToAsyncEnumerable());
                 List<Row> items = await result.ToListAsync();
-                Assert.Equal(1, items.Count);
+                Assert.Single(items);
                 Assert.Equal(6, items[0]["count"]);
             }
         }

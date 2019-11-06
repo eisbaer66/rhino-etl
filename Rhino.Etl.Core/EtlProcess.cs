@@ -155,7 +155,7 @@ namespace Rhino.Etl.Core
                                                         string                   commandText,
                                                         CancellationToken        cancellationToken = default)
         {
-            return await Use.Transaction<T>(connectionStringSettings,
+            return await Database.Transaction<T>(connectionStringSettings,
                                             async delegate(DbCommand cmd)
                                             {
                                                 cmd.CommandText = commandText;

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Nito.AsyncEx;
 
 namespace Rhino.Etl.Core.Enumerables
 {
@@ -15,6 +16,7 @@ namespace Rhino.Etl.Core.Enumerables
     public class ThreadSafeEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumerator<T>
     {
         private bool active = true;
+        private readonly AsyncMonitor monitor = new AsyncMonitor();
         private readonly Queue<T> cached = new Queue<T>();
         private T current;
 
@@ -24,20 +26,9 @@ namespace Rhino.Etl.Core.Enumerables
         /// <returns>
         /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
         /// </returns>
-        public IAsyncEnumerator<T> GetEnumerator()
-        {
-            return this;
-        }
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
-        /// </returns>
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
         {
-            throw new NotImplementedException();
+            return this;
         }
 
         /// <summary>
@@ -67,19 +58,19 @@ namespace Rhino.Etl.Core.Enumerables
         /// true if the enumerator was successfully advanced to the next element; false if the enumerator has passed the end of the collection.
         /// </returns>
         /// <exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception>
-        public ValueTask<bool> MoveNextAsync()
+        public async ValueTask<bool> MoveNextAsync()
         {
-            lock (cached)
+            using (await monitor.EnterAsync())
             {
                 while (cached.Count == 0 && active)
-                    Monitor.Wait(cached);
+                    await monitor.WaitAsync();
 
                 if (active == false && cached.Count == 0)
-                    return new ValueTask<bool>(false);
+                    return false;
 
                 current = cached.Dequeue();
 
-                return new ValueTask<bool>(true);
+                return true;
             }
         }
 
@@ -88,24 +79,24 @@ namespace Rhino.Etl.Core.Enumerables
         /// Will immediately release a waiting thread that can start working on itl
         /// </summary>
         /// <param name="item">The item.</param>
-        public void AddItem(T item)
+        public async Task AddItem(T item)
         {
-            lock (cached)
+            using (await monitor.EnterAsync())
             {
                 cached.Enqueue(item);
-                Monitor.Pulse(cached);
+                monitor.Pulse();
             }
         }
 
         /// <summary>
         /// Marks this instance as finished, so it will stop iterating
         /// </summary>
-        public void MarkAsFinished()
+        public async Task MarkAsFinished()
         {
-            lock (cached)
+            using (await monitor.EnterAsync())
             {
                 active = false;
-                Monitor.Pulse(cached);
+                monitor.Pulse();
             }
 
         }

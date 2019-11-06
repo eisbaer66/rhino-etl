@@ -30,25 +30,22 @@ namespace Rhino.Etl.Core.Pipelines
             {
                 try
                 {
-                    EventRaisingEnumerator eventRaisingEnumerator = new EventRaisingEnumerator(operation, enumerator);
+                    IAsyncEnumerable<Row> eventRaisingEnumerator = new EventRaisingEnumerator(operation, enumerator);
                     await eventRaisingEnumerator
-                        .ForEachAsync(t =>
-                                      {
-                                          threadedEnumerator.AddItem(t);
-                                          return Task.CompletedTask;
-                                      });
+                        .ForEachAsync(async t => { await threadedEnumerator.AddItem(t); },
+                                      cancellationToken: cancellationToken);
                 }
                 catch (Exception e)
                 {
                     Error(e, "Failed to execute operation {0}", new Tuple<string, object>("Operation", operation));
-                    threadedEnumerator.MarkAsFinished();
-//#if DEBUG
-//                    throw;
-//#endif
+                    await threadedEnumerator.MarkAsFinished();
+#if DEBUG
+                    throw;
+#endif
                 }
                 finally
                 {
-                    threadedEnumerator.MarkAsFinished();
+                    await threadedEnumerator.MarkAsFinished();
                 }
             });
             return threadedEnumerator;

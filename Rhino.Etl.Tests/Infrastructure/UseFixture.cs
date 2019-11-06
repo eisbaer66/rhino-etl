@@ -17,7 +17,7 @@ namespace Rhino.Etl.Tests.Infrastructure
             string connectionString = ConfigurationManager.ConnectionStrings["test"].ConnectionString;
             ConnectionStringSettings connectionStringSettings = new ConnectionStringSettings("test2", connectionString, typeof(SqlConnection).AssemblyQualifiedName);
 
-            using (DbConnection connection = await Use.Connection(connectionStringSettings))
+            using (DbConnection connection = await Database.Connection(connectionStringSettings))
             {
                 Assert.NotNull(connection);
             }
@@ -29,7 +29,7 @@ namespace Rhino.Etl.Tests.Infrastructure
             string connectionString = ConfigurationManager.ConnectionStrings["test"].ConnectionString;
             ConnectionStringSettings connectionStringSettings = new ConnectionStringSettings("test2", connectionString, "System.Data.SqlClient");
 
-            using (DbConnection connection = await Use.Connection(connectionStringSettings))
+            using (DbConnection connection = await Database.Connection(connectionStringSettings))
             {
                 Assert.NotNull(connection);
             }

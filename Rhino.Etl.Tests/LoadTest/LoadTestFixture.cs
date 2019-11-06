@@ -18,7 +18,7 @@ namespace Rhino.Etl.Tests.LoadTest
         private const int expectedCount = 5000;
         private int currentUserCount;
 
-        public async Task AssertUpdatedAllRows()
+        private async Task AssertUpdatedAllRows()
         {
             Assert.Equal(expectedCount + currentUserCount, await GetUserCount("testMsg is not null"));
 
@@ -26,7 +26,7 @@ namespace Rhino.Etl.Tests.LoadTest
 
         private static async Task<int> GetUserCount(string where)
         {
-            return await Use.Transaction("test", async delegate(DbCommand command)
+            return await Database.Transaction("test", async delegate(DbCommand command)
             {
                 command.CommandText = "select count(*) from users where " + where;
                 return (int)await command.ExecuteScalarAsync();

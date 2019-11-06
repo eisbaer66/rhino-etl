@@ -57,16 +57,18 @@ namespace Rhino.Etl.Core.Operations
                                   {
                                       bool leftNeedOuterJoin = true;
                                       currentLeftRow = leftRow;
-                                      foreach (Row rightRow in rightEnumerable)
-                                      {
-                                          currentRightRow = rightRow;
-                                          if (MatchJoinCondition(leftRow, rightRow))
-                                          {
-                                              leftNeedOuterJoin          = false;
-                                              matchedRightRows[rightRow] = null;
-                                              await yield.ReturnAsync(MergeRows(leftRow, rightRow));
-                                          }
-                                      }
+                                      await rightEnumerable.ForEachAsync(async rightRow =>
+                                                                         {
+                                                                             currentRightRow = rightRow;
+                                                                             if (MatchJoinCondition(leftRow, rightRow))
+                                                                             {
+                                                                                 leftNeedOuterJoin          = false;
+                                                                                 matchedRightRows[rightRow] = null;
+                                                                                 await yield
+                                                                                     .ReturnAsync(MergeRows(leftRow,
+                                                                                                            rightRow));
+                                                                             }
+                                                                         }, cancellationToken);
 
                                       if (leftNeedOuterJoin)
                                       {
@@ -78,20 +80,20 @@ namespace Rhino.Etl.Core.Operations
                                           else
                                               LeftOrphanRow(leftRow);
                                       }
-                                  });
-                foreach (Row rightRow in rightEnumerable)
-                {
-                    if (matchedRightRows.ContainsKey(rightRow))
-                        continue;
-                    currentRightRow = rightRow;
-                    Row emptyRow = new Row();
-                    emptyRow[IsEmptyRowMarker] = IsEmptyRowMarker;
-                    currentLeftRow = emptyRow;
-                    if (MatchJoinCondition(emptyRow, rightRow))
-                        await yield.ReturnAsync(MergeRows(emptyRow, rightRow));
-                    else
-                        RightOrphanRow(rightRow);
-                }
+                                  }, cancellationToken);
+                await rightEnumerable.ForEachAsync(async rightRow =>
+                                                   {
+                                                       if (matchedRightRows.ContainsKey(rightRow))
+                                                           return;
+                                                       currentRightRow = rightRow;
+                                                       Row emptyRow = new Row();
+                                                       emptyRow[IsEmptyRowMarker] = IsEmptyRowMarker;
+                                                       currentLeftRow             = emptyRow;
+                                                       if (MatchJoinCondition(emptyRow, rightRow))
+                                                           await yield.ReturnAsync(MergeRows(emptyRow, rightRow));
+                                                       else
+                                                           RightOrphanRow(rightRow);
+                                                   }, cancellationToken);
             });
         }
 

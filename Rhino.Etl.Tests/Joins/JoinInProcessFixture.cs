@@ -13,7 +13,7 @@ namespace Rhino.Etl.Tests.Joins
             using (TrivialUsersToPeopleJoinProcess process = new TrivialUsersToPeopleJoinProcess(left, right))
             {
                 await process.Execute();
-                Assert.Equal(1, process.Results.Count);
+                Assert.Single(process.Results);
                 Assert.Equal(3, process.Results[0]["person_id"]);
             }
         }

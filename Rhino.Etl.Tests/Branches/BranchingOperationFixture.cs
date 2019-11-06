@@ -14,17 +14,6 @@ namespace Rhino.Etl.Tests.Branches
     public class BranchingOperationFixture
     {
         [Fact]
-        public async Task TheOldBranchingOperationDoesNotReportErrors()
-        {
-            using (var process = new BranchingOperationProcess<BranchingOperationWithBug>())
-            {
-                await process.Execute();
-                var errors = process.GetAllErrors().Count();
-                Assert.Equal(0, errors);
-            }
-        }
-
-        [Fact]
         public async Task TheNewBranchingOperationReportsErrors()
         {
             using (var process = new BranchingOperationProcess<BranchingOperation>())
@@ -44,7 +33,6 @@ namespace Rhino.Etl.Tests.Branches
             {
                 await process.Execute();
 
-                await Task.Delay(10000);
                 string s = stringBuilder.ToString();
                 Assert.NotEqual(string.Empty, s);
                 Assert.NotEqual("add add add add subtract subtract subtract subtract ", s);

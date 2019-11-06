@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using Dasync.Collections;
+using Nito.AsyncEx;
 using Rhino.Etl.Core.Enumerables;
 
 namespace Rhino.Etl.Core.Operations
@@ -21,7 +22,7 @@ namespace Rhino.Etl.Core.Operations
             return new AsyncEnumerable<Row>(async yield => {
                 var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows, cancellationToken);
 
-                var sync = new SemaphoreSlim(1, 1);
+                AsyncMonitor monitor = new AsyncMonitor();
 
                 foreach (var operation in Operations)
                 {
@@ -44,18 +45,18 @@ namespace Rhino.Etl.Core.Operations
                                                      }
                                                      finally
                                                      {
-                                                         await sync.Execute(async () =>
+                                                         using (await monitor.EnterAsync(cancellationToken))
                                                          {
                                                              await enumerator.DisposeAsync();
-                                                             Monitor.Pulse(sync);
-                                                         }, cancellationToken);
+                                                             monitor.Pulse();
+                                                         }
                                                      }
                                                  });
                 }
 
-                lock (sync)
+                using (await monitor.EnterAsync(cancellationToken))
                     while (input.ConsumersLeft > 0)
-                        Monitor.Wait(sync);
+                        await monitor.WaitAsync(cancellationToken);
 
                 yield.Break();
             });

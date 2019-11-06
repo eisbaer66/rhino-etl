@@ -52,7 +52,7 @@ namespace Rhino.Etl.Tests.Branches
 
         private static async Task AssertRepetitions(int repetitionsPerIteration)
         {
-            int wrongRepetitions = await Use.Transaction("test", async cmd =>
+            int wrongRepetitions = await Database.Transaction("test", async cmd =>
                                                            {
                                                                cmd.CommandText =
                                                                    string.Format(@"    SELECT count(*) 
@@ -70,7 +70,7 @@ namespace Rhino.Etl.Tests.Branches
 
         private static async Task AssertTotalItems(int expectedCount)
         {
-            int totalCount = await Use.Transaction("test", async cmd =>
+            int totalCount = await Database.Transaction("test", async cmd =>
                                                      {
                                                          cmd.CommandText = "SELECT count(*) FROM Fibonacci";
                                                          return (int) await cmd.ExecuteScalarAsync();

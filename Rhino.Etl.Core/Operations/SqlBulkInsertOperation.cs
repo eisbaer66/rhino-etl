@@ -229,7 +229,7 @@ namespace Rhino.Etl.Core.Operations
                 PrepareSchema();
                 PrepareMapping();
                 CreateInputSchema();
-                using (SqlConnection connection = (SqlConnection)await Use.Connection(ConnectionStringSettings, cancellationToken))
+                using (SqlConnection connection = (SqlConnection)await Database.Connection(ConnectionStringSettings, cancellationToken))
                 using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
                 {
                     sqlBulkCopy = CreateSqlBulkCopy(connection, transaction);

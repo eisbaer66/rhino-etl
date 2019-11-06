@@ -51,7 +51,7 @@ namespace Rhino.Etl.Tests
 
             BatchFibonacci fibonaci = new BatchFibonacci(25, Should.Throw);
             await fibonaci.Execute();
-            Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
+            Assert.Single(new List<Exception>(fibonaci.GetAllErrors()));
             await AssertFibonacciTableEmpty();
         }
     }

@@ -10,7 +10,7 @@ namespace Rhino.Etl.Tests
     {
         protected static async Task EnsureFibonacciTableExists()
         {
-            await Use.Transaction("test", async delegate (DbCommand cmd)
+            await Database.Transaction("test", async delegate (DbCommand cmd)
                                     {
                                         cmd.CommandText =
                                             @"
@@ -24,7 +24,7 @@ create table Fibonacci ( id int );
 
         protected static async Task Assert25ThFibonacci()
         {
-            int max = await Use.Transaction("test", async delegate(DbCommand cmd)
+            int max = await Database.Transaction("test", async delegate(DbCommand cmd)
             {
                 cmd.CommandText = "SELECT MAX(id) FROM Fibonacci";
                 return (int) await cmd.ExecuteScalarAsync();
@@ -34,7 +34,7 @@ create table Fibonacci ( id int );
 
         protected static async Task AssertFibonacciTableEmpty()
         {
-            int count = await Use.Transaction("test", async delegate(DbCommand cmd)
+            int count = await Database.Transaction("test", async delegate(DbCommand cmd)
             {
                 cmd.CommandText = "SELECT count(id) FROM Fibonacci";
                 return (int) await cmd.ExecuteScalarAsync();

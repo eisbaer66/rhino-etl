@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nito.AsyncEx;
 
 namespace Rhino.Etl.Core.Enumerables
 {
@@ -14,7 +15,7 @@ namespace Rhino.Etl.Core.Enumerables
         private readonly int numberOfConsumers;
         private readonly IAsyncEnumerator<T> innerEnumerator;
         private int callsToMoveNext;
-        private readonly SemaphoreSlim sync = new SemaphoreSlim(1,1);
+        private readonly AsyncMonitor monitor = new AsyncMonitor();
         private bool moveNext;
         private T current;
         private int consumersLeft;
@@ -61,7 +62,7 @@ namespace Rhino.Etl.Core.Enumerables
         ///    <returns></returns>
         public async ValueTask<bool> MoveNextAsync()
         {
-            await sync.Execute(async () =>
+            using(await monitor.EnterAsync())
             {
                 if (Interlocked.Increment(ref callsToMoveNext) == numberOfConsumers)
                 {
@@ -71,13 +72,13 @@ namespace Rhino.Etl.Core.Enumerables
 
                     Debug("Pulsing all waiting threads");
 
-                    Monitor.PulseAll(sync);
+                    monitor.PulseAll();
                 }
                 else
                 {
-                    Monitor.Wait(sync);
+                    await monitor.WaitAsync();
                 }
-            });
+            }
             return moveNext;
         }
 

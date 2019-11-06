@@ -24,7 +24,7 @@ namespace Rhino.Etl.Core.Pipelines
             return new AsyncEnumerable<Row>(async yield =>
                                             {
                                                 await new EventRaisingEnumerator(operation, enumerator)
-                                                    .ForEachAsync(async row => { await yield.ReturnAsync(row); });
+                                                    .ForEachAsync(async row => { await yield.ReturnAsync(row); }, cancellationToken);
                                             });
         }
     }

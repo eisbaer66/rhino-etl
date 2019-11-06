@@ -23,17 +23,19 @@ namespace Rhino.Etl.Core.Operations
             return new AsyncEnumerable<Row>(async yield => {
                 IDictionary<ObjectArrayKeys, Row> aggregations = new Dictionary<ObjectArrayKeys, Row>();
                 string[] groupBy = GetColumnsToGroupBy();
-                await rows.ForEachAsync(async row =>
+                await rows.ForEachAsync(row =>
                 {
                     ObjectArrayKeys key = row.CreateKey(groupBy);
                     Row aggregate;
                     if (aggregations.TryGetValue(key, out aggregate) == false)
                         aggregations[key] = aggregate = new Row();
-                    await Accumulate(row, aggregate);
+                    Accumulate(row, aggregate);
+
+                    return Task.CompletedTask;
                 }, cancellationToken);
                 foreach (Row row in aggregations.Values)
                 {
-                    await FinishAggregation(row);
+                    FinishAggregation(row);
                     await yield.ReturnAsync(row);
                 }
             });
@@ -44,7 +46,7 @@ namespace Rhino.Etl.Core.Operations
         /// aggregate, before sending it downward in the pipeline.
         /// </summary>
         /// <param name="aggregate">The row.</param>
-        protected virtual async Task FinishAggregation(Row aggregate)
+        protected virtual async void FinishAggregation(Row aggregate)
         {
             await Task.CompletedTask;
         }
@@ -54,7 +56,7 @@ namespace Rhino.Etl.Core.Operations
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="aggregate">The aggregate.</param>
-        protected abstract Task Accumulate(Row row, Row aggregate);
+        protected abstract void Accumulate(Row row, Row aggregate);
 
         /// <summary>
         /// Gets the columns list to group each row by

@@ -12,14 +12,12 @@ namespace Rhino.Etl.Tests.Aggregation
         /// </summary>
         /// <param name="row">The row.</param>
         /// <param name="aggregate">The aggregate.</param>
-        protected override Task Accumulate(Row row, Row aggregate)
+        protected override void Accumulate(Row row, Row aggregate)
         {
             aggregate["name"] = row["name"];
             if(aggregate["cost"]==null)
                 aggregate["cost"] = 0;
             aggregate["cost"] = ((int) aggregate["cost"]) + ((int) row["price"]);
-
-            return Task.CompletedTask;
         }
 
         protected override string[] GetColumnsToGroupBy()

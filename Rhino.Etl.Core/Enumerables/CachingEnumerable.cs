@@ -59,19 +59,6 @@ namespace Rhino.Etl.Core.Enumerables
         }
 
         ///<summary>
-        ///Returns an enumerator that iterates through a collection.
-        ///</summary>
-        ///
-        ///<returns>
-        ///An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.
-        ///</returns>
-        ///<filterpriority>2</filterpriority>
-        public IEnumerator GetEnumerator()
-        {
-            return ((IEnumerable<T>)this).GetEnumerator();
-        }
-
-        ///<summary>
         ///Gets the element in the collection at the current position of the enumerator.
         ///</summary>
         ///

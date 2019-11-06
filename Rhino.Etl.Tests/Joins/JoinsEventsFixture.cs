@@ -81,7 +81,7 @@ namespace Rhino.Etl.Tests.Joins
             op2.VerifyAllExpectations();
 
             var    handlerInfos = typeof(AbstractOperation).GetField("OnRowProcessed",    BindingFlags.Static    | BindingFlags.Instance    | BindingFlags.NonPublic);
-            Assert.Equal(1,    ((Delegate)(handlerInfos.GetValue(join))).GetInvocationList().Length);
+            Assert.Single(((Delegate)(handlerInfos.GetValue(join))).GetInvocationList());
         }
 
         [Fact]
@@ -104,7 +104,7 @@ namespace Rhino.Etl.Tests.Joins
             op2.VerifyAllExpectations();
 
             var    handlerInfos = typeof(AbstractOperation).GetField("OnFinishedProcessing", BindingFlags.Static |    BindingFlags.Instance |    BindingFlags.NonPublic);
-            Assert.Equal(1,    ((Delegate)(handlerInfos.GetValue(join))).GetInvocationList().Length);
+            Assert.Single(((Delegate)(handlerInfos.GetValue(join))).GetInvocationList());
         }
     }
 

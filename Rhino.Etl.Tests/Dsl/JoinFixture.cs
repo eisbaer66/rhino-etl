@@ -30,7 +30,7 @@ namespace Rhino.Etl.Tests.Dsl
             using (EtlProcess process = CreateDslInstance("Dsl/InnerJoin.boo"))
                 await process.Execute();
             List<string> roles = new List<string>();
-            await Use.Transaction("test", async delegate(DbCommand command)
+            await Database.Transaction("test", async delegate(DbCommand command)
             {
                 command.CommandText = @"
                                 SELECT Roles FROM Users

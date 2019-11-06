@@ -13,7 +13,7 @@ namespace Rhino.Etl.Tests
     {
         public async Task SetupTables()
         {
-            await Use.Transaction("test", async delegate(DbCommand cmd)
+            await Database.Transaction("test", async delegate(DbCommand cmd)
             {
                 cmd.CommandText =
                     @"

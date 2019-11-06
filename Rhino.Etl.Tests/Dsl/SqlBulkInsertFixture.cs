@@ -29,7 +29,7 @@ namespace Rhino.Etl.Tests.Dsl
             using (EtlProcess process = CreateDslInstance("Dsl/UsersToPeopleBulk.boo"))
                 await process.Execute();
 
-            List<string[]> names = await Use.Transaction<List<string[]>>("test", async delegate(DbCommand cmd)
+            List<string[]> names = await Database.Transaction<List<string[]>>("test", async delegate(DbCommand cmd)
             {
                 List<string[]> tuples = new List<string[]>();
                 cmd.CommandText = "SELECT firstname, lastname from people order by userid";

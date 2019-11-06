@@ -12,7 +12,6 @@ namespace Rhino.Etl.Tests.UsingDAL
         protected override Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield @yield)
         {
             MySimpleDal.Save(row.ToObject<User>());
-            @yield.Break();
 
             return Task.CompletedTask;
         }

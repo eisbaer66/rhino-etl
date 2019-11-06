@@ -80,7 +80,7 @@ namespace Rhino.Etl.Core.Operations
                                       {
                                           LeftOrphanRow(leftRow);
                                       }
-                                  });
+                                  }, cancellationToken);
 
                 await rightEnumerable.ForEachAsync(async rightRow =>
                 {

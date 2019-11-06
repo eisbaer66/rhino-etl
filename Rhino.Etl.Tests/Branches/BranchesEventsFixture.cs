@@ -85,7 +85,7 @@ namespace Rhino.Etl.Tests.Branches
                 op.VerifyAllExpectations();
 
             var    handlerInfos = typeof(AbstractOperation).GetField("OnRowProcessed",    BindingFlags.Static    | BindingFlags.Instance    | BindingFlags.NonPublic);
-            Assert.Equal(1,    ((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList().Length);
+            Assert.Single(((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList());
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace Rhino.Etl.Tests.Branches
                 op.VerifyAllExpectations();
 
             var    handlerInfos = typeof(AbstractOperation).GetField("OnFinishedProcessing", BindingFlags.Static |    BindingFlags.Instance |    BindingFlags.NonPublic);
-            Assert.Equal(1,    ((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList().Length);
+            Assert.Single(((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList());
         }
     }
 

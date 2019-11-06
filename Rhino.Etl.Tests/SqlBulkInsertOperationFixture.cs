@@ -44,7 +44,7 @@ namespace Rhino.Etl.Tests
 
             BulkInsertFibonacciToDatabase fibonaci = new BulkInsertFibonacciToDatabase(25, Should.Throw);
             await fibonaci.Execute();
-            Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
+            Assert.Single(new List<Exception>(fibonaci.GetAllErrors()));
             await AssertFibonacciTableEmpty();
         }
     }
