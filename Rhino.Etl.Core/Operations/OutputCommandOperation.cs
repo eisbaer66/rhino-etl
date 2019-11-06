@@ -43,7 +43,7 @@ namespace Rhino.Etl.Core.Operations
         {
             return new AsyncEnumerable<Row>(async yield => {
                 await rows
-                    .ForEachAsync(async row =>
+                .ForEachAsync(async row =>
                                   {
                                       using (DbConnection connection = await Database.Connection(ConnectionStringSettings, cancellationToken))
                                       using (DbTransaction transaction = BeginTransaction(connection))
@@ -68,6 +68,8 @@ namespace Rhino.Etl.Core.Operations
                                               Debug("Committed {OperationName}", Name);
                                           }
                                       }
+
+                                      await yield.ReturnAsync(row);
                                   }, cancellationToken: cancellationToken);
             });
         }
