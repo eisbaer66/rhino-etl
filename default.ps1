@@ -5,6 +5,8 @@ properties {
   $version = "1.4.0.0"
   $humanReadableversion = "1.4"
   $tools_dir = "$base_dir\Tools"
+  $packages_dir = "$base_dir\packages"
+  $xunit_dir = "$packages_dir\xunit.runner.console.2.4.1\tools\net461"
   $release_dir = "$base_dir\Release"
   $uploadCategory = "Rhino-ETL"
   $uploader = "..\Uploader\S3Uploader.exe"
@@ -49,7 +51,7 @@ task Compile -depends Init {
 
 task Test -depends Compile {
   $old = pwd
-  cd $tools_dir\xUnit\
+  cd $xunit_dir
   &.\xunit.console.exe "$base_dir\Rhino.Etl.Tests\bin\Release\Rhino.Etl.Tests.dll"
   if ($lastExitCode -ne 0) {
         throw "Error: Failed to execute tests"
