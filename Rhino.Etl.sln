@@ -15,6 +15,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Bootstrap", "Rhin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.ExternalOperations", "Rhino.Etl.ExternalOperations\Rhino.Etl.ExternalOperations.csproj", "{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "publish", "publish", "{B5595862-0A48-4C25-AEEF-AB3E917AD7B4}"
+	ProjectSection(SolutionItems) = preProject
+		acknowledgements.txt = acknowledgements.txt
+		ayende-open-source.snk = ayende-open-source.snk
+		default.ps1 = default.ps1
+		How to build.txt = How to build.txt
+		license.txt = license.txt
+		README.md = README.md
+		Rhino.Etl.nuspec = Rhino.Etl.nuspec
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
