@@ -1,3 +1,6 @@
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 using Dasync.Collections;
 
 namespace Rhino.Etl.Core.DataReaders
@@ -12,7 +15,7 @@ namespace Rhino.Etl.Core.DataReaders
     /// This is important because we can now pass an in memory generated code to code
     /// that requires this, such as the SqlBulkCopy class.
     /// </summary>
-    public abstract class EnumerableDataReader<T> : IDataReader
+    public abstract class EnumerableDataReader<T> : DbDataReader
     {
         /// <summary>
         /// The enumerator that we are iterating on.
@@ -43,7 +46,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <summary>
         /// Closes the <see cref="T:System.Data.IDataReader"/> Object.
         /// </summary>
-        public void Close()
+        public override void Close()
         {
             DoClose();
             isClosed = true;
@@ -64,7 +67,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <returns>
         /// A <see cref="T:System.Data.DataTable"/> that describes the column metadata.
         /// </returns>
-        public DataTable GetSchemaTable()
+        public override DataTable GetSchemaTable()
         {
             DataTable table = new DataTable("schema");
             table.Columns.Add("ColumnName", typeof(string));
@@ -88,7 +91,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <returns>
         /// true if there are more rows; otherwise, false.
         /// </returns>
-        public bool NextResult()
+        public override bool NextResult()
         {
             return false;
         }
@@ -99,9 +102,20 @@ namespace Rhino.Etl.Core.DataReaders
         /// <returns>
         /// true if there are more rows; otherwise, false.
         /// </returns>
-        public bool Read()
+        public override bool Read()
         {
-            bool next = enumerator.MoveNextAsync().Result;
+            throw new NotSupportedException("use ReadAsync()");
+        }
+
+        /// <summary>
+        /// Advances the <see cref="T:System.Data.IDataReader"/> to the next record.
+        /// </summary>
+        /// <returns>
+        /// true if there are more rows; otherwise, false.
+        /// </returns>
+        public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
+        {
+            bool next = await enumerator.MoveNextAsync();
             if (next)
                 rowCount += 1;
             return next;
@@ -113,17 +127,22 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         /// <value></value>
         /// <returns>The level of nesting.</returns>
-        public int Depth
+        public override int Depth
         {
             get { return 0; }
         }
+
+        /// <summary>Gets a value that indicates whether this <see cref="T:System.Data.Common.DbDataReader" /> contains one or more rows.</summary>
+        /// <returns>
+        /// <see langword="true" /> if the <see cref="T:System.Data.Common.DbDataReader" /> contains one or more rows; otherwise <see langword="false" />.</returns>
+        public override bool HasRows => rowCount > 0;
 
         /// <summary>
         /// Gets a value indicating whether the data reader is closed.
         /// </summary>
         /// <value></value>
         /// <returns>true if the data reader is closed; otherwise, false.</returns>
-        public bool IsClosed
+        public override bool IsClosed
         {
             get { return isClosed; }
         }
@@ -133,17 +152,9 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         /// <value></value>
         /// <returns>The number of rows changed, inserted, or deleted; 0 if no rows were affected or the statement failed; and -1 for SELECT statements.</returns>
-        public int RecordsAffected
+        public override int RecordsAffected
         {
             get { return -1; }
-        }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            Close();
         }
 
         /// <summary>
@@ -154,7 +165,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The name of the field or the empty string (""), if there is no value to return.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public string GetName(int i)
+        public override string GetName(int i)
         {
             return PropertyDescriptors[i].Name;
         }
@@ -167,9 +178,16 @@ namespace Rhino.Etl.Core.DataReaders
         /// The data type information for the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public string GetDataTypeName(int i)
+        public override string GetDataTypeName(int i)
         {
             return PropertyDescriptors[i].Type.Name;
+        }
+
+        /// <summary>Returns an <see cref="T:System.Collections.IEnumerator" /> that can be used to iterate through the rows in the data reader.</summary>
+        /// <returns>An <see cref="T:System.Collections.IEnumerator" /> that can be used to iterate through the rows in the data reader.</returns>
+        public override IEnumerator GetEnumerator()
+        {
+            throw new NotSupportedException("use Read()");
         }
 
         /// <summary>
@@ -180,7 +198,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The <see cref="T:System.Type"/> information corresponding to the type of <see cref="T:System.Object"/> that would be returned from <see cref="M:System.Data.IDataRecord.GetValue(System.Int32)"/>.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public Type GetFieldType(int i)
+        public override Type GetFieldType(int i)
         {
             return PropertyDescriptors[i].Type;
         }
@@ -193,7 +211,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The <see cref="T:System.Object"/> which will contain the field value upon return.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public object GetValue(int i)
+        public override object GetValue(int i)
         {
             return PropertyDescriptors[i].GetValue(enumerator.Current) ?? DBNull.Value;
         }
@@ -205,7 +223,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <returns>
         /// The number of instances of <see cref="T:System.Object"/> in the array.
         /// </returns>
-        public int GetValues(object[] values)
+        public override int GetValues(object[] values)
         {
             for (int i = 0; i < PropertyDescriptors.Count; i++)
             {
@@ -219,7 +237,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         /// <param name="name">The name of the field to find.</param>
         /// <returns>The index of the named field.</returns>
-        public int GetOrdinal(string name)
+        public override int GetOrdinal(string name)
         {
             for (int i = 0; i < PropertyDescriptors.Count; i++)
             {
@@ -235,7 +253,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <param name="i">The zero-based column ordinal.</param>
         /// <returns>The value of the column.</returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public bool GetBoolean(int i)
+        public override bool GetBoolean(int i)
         {
             return (bool)GetValue(i);
         }
@@ -248,7 +266,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The 8-bit unsigned integer value of the specified column.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public byte GetByte(int i)
+        public override byte GetByte(int i)
         {
             return (byte)GetValue(i);
         }
@@ -256,7 +274,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <summary>
         /// We do not support this operation
         /// </summary>
-        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
+        public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
         {
             throw new NotSupportedException();
         }
@@ -269,7 +287,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The character value of the specified column.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public char GetChar(int i)
+        public override char GetChar(int i)
         {
             return (char)GetValue(i);
         }
@@ -277,7 +295,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <summary>
         /// We do not support this operation
         /// </summary>
-        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
+        public override long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
         {
             throw new NotSupportedException();
         }
@@ -288,7 +306,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <param name="i">The index of the field to find.</param>
         /// <returns>The GUID value of the specified field.</returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public Guid GetGuid(int i)
+        public override Guid GetGuid(int i)
         {
             return (Guid)GetValue(i);
         }
@@ -301,7 +319,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The 16-bit signed integer value of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public short GetInt16(int i)
+        public override short GetInt16(int i)
         {
             return (short)GetValue(i);
         }
@@ -314,7 +332,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The 32-bit signed integer value of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public int GetInt32(int i)
+        public override int GetInt32(int i)
         {
             return (int)GetValue(i);
         }
@@ -327,7 +345,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The 64-bit signed integer value of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public long GetInt64(int i)
+        public override long GetInt64(int i)
         {
             return (long)GetValue(i);
         }
@@ -340,7 +358,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The single-precision floating point number of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public float GetFloat(int i)
+        public override float GetFloat(int i)
         {
             return (float)GetValue(i);
         }
@@ -353,7 +371,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The double-precision floating point number of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public double GetDouble(int i)
+        public override double GetDouble(int i)
         {
             return (double)GetValue(i);
         }
@@ -364,7 +382,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// <param name="i">The index of the field to find.</param>
         /// <returns>The string value of the specified field.</returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public string GetString(int i)
+        public override string GetString(int i)
         {
             return (string)GetValue(i);
         }
@@ -377,7 +395,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// The fixed-position numeric value of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public decimal GetDecimal(int i)
+        public override decimal GetDecimal(int i)
         {
             return (decimal)GetValue(i);
         }
@@ -390,17 +408,9 @@ namespace Rhino.Etl.Core.DataReaders
         /// The date and time data value of the specified field.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public DateTime GetDateTime(int i)
+        public override DateTime GetDateTime(int i)
         {
             return (DateTime)GetValue(i);
-        }
-
-        /// <summary>
-        /// We do not support nesting
-        /// </summary>
-        public IDataReader GetData(int i)
-        {
-            throw new NotSupportedException();
         }
 
         /// <summary>
@@ -411,7 +421,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// true if the specified field is set to null; otherwise, false.
         /// </returns>
         /// <exception cref="T:System.IndexOutOfRangeException">The index passed was outside the range of 0 through <see cref="P:System.Data.IDataRecord.FieldCount"/>. </exception>
-        public bool IsDBNull(int i)
+        public override bool IsDBNull(int i)
         {
             return GetValue(i) == null || GetValue(i) == DBNull.Value;
         }
@@ -421,7 +431,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         /// <value></value>
         /// <returns>When not positioned in a valid recordset, 0; otherwise, the number of columns in the current record. The default is -1.</returns>
-        public int FieldCount
+        public override int FieldCount
         {
             get { return PropertyDescriptors.Count; }
         }
@@ -430,7 +440,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// Gets the <see cref="System.Object"/> with the specified i.
         /// </summary>
         /// <value></value>
-        public object this[int i]
+        public override object this[int i]
         {
             get { return GetValue(i); }
         }
@@ -439,7 +449,7 @@ namespace Rhino.Etl.Core.DataReaders
         /// Gets the <see cref="System.Object"/> with the specified name.
         /// </summary>
         /// <value></value>
-        public object this[string name]
+        public override object this[string name]
         {
             get { return GetValue(GetOrdinal(name)); }
         }

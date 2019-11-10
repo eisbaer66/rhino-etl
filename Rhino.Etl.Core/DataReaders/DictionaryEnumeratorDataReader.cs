@@ -46,14 +46,14 @@ namespace Rhino.Etl.Core.DataReaders
         /// </summary>
         protected override void DoClose()
         {
-            enumerator.DisposeAsync();
+            enumerator.DisposeAsync().GetAwaiter().GetResult();
 
             IDisposable disposable = enumerable as IDisposable;
             if (disposable != null)
                 disposable.Dispose();
             IAsyncDisposable disposableAsync = enumerable as IAsyncDisposable;
             if (disposableAsync != null)
-                enumerator.DisposeAsync();
+                enumerator.DisposeAsync().GetAwaiter().GetResult();
         }
     }
 }
