@@ -163,6 +163,7 @@
     <Compile Include="Operations\IOperation.cs" />
     <Compile Include="Operations\PartialProcessOperation.cs" />
     <Compile Include="Operations\SqlBatchOperation.cs" />
+    <Compile Include="Pipelines\AsyncEnumerableTask.cs" />
     <Compile Include="Pipelines\PipelineExecutionException.cs" />
     <Compile Include="Pipelines\SingleThreadedNonCachedPipelineExecuter.cs" />
     <Compile Include="Pipelines\ThreadPoolPipelineExecuter.cs" />

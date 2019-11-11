@@ -33,7 +33,7 @@ namespace Rhino.Etl.Tests
 
     public class TestPipelineExecuter :    AbstractPipelineExecuter
     {
-        protected override IAsyncEnumerable<Row> DecorateEnumerableForExecution(
+        protected override AsyncEnumerableTask<Row> DecorateEnumerableForExecution(
             IOperation            operation,
             IAsyncEnumerable<Row> enumerator,
             CancellationToken     cancellationToken = default)

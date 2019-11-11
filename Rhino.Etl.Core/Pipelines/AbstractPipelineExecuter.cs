@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dasync.Collections;
@@ -66,13 +67,19 @@ namespace Rhino.Etl.Core.Pipelines
             Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable, 
             CancellationToken cancellationToken = default)
         {
+            IList<Task> tasks = new List<Task>();
             foreach (var operation in pipeline)
             {
                 operation.PrepareForExecution(this);
                 var enumerator = operation.Execute(rows, cancellationToken);
                 enumerator = translateEnumerable(enumerator);
-                rows = DecorateEnumerableForExecution(operation, enumerator, cancellationToken);
+                AsyncEnumerableTask<Row> task = DecorateEnumerableForExecution(operation, enumerator, cancellationToken);
+                rows = task.Enumerable;
+                tasks.Add(task.Task);
             }
+
+            Task.WaitAll(tasks.ToArray());
+
             return rows;
         }
 
@@ -170,7 +177,7 @@ namespace Rhino.Etl.Core.Pipelines
         ///    <param name="operation">The operation.</param>
         ///    <param name="enumerator">The enumerator.</param>
         ///    <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
-        protected abstract IAsyncEnumerable<Row> DecorateEnumerableForExecution(
+        protected abstract AsyncEnumerableTask<Row> DecorateEnumerableForExecution(
             IOperation            operation,
             IAsyncEnumerable<Row> enumerator,
             CancellationToken     cancellationToken = default);
