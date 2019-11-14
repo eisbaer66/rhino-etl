@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests.Errors
 {
     using System;
@@ -10,25 +12,29 @@ namespace Rhino.Etl.Tests.Errors
     public class ErrorsFixture : BaseFibonacciTest
     {
         [Fact]
-        public void WillReportErrorsWhenThrown()
+        public async Task WillReportErrorsWhenThrown()
         {
+            await EnsureFibonacciTableExists();
+
             using (ErrorsProcess process = new ErrorsProcess())
             {
                 ICollection<Row> results = new List<Row>();
                 process.RegisterLast(new AddToResults(results));
 
-                process.Execute();
+                await process.Execute();
                 Assert.Equal(process.ThrowOperation.RowsAfterWhichToThrow, results.Count);
                 List<Exception> errors = new List<Exception>(process.GetAllErrors());
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Equal("Failed to execute operation Rhino.Etl.Tests.Errors.ThrowingOperation: problem",
                                 errors[0].Message);
             }
         }
 
         [Fact]
-        public void OutputCommandWillRollbackTransactionOnError()
+        public async Task OutputCommandWillRollbackTransactionOnError()
         {
+            await EnsureFibonacciTableExists();
+
             using (ErrorsProcess process = new ErrorsProcess())
             {
               

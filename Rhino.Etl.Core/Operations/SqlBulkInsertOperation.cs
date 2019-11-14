@@ -1,4 +1,7 @@
 using System.Configuration;
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Core.Operations
@@ -219,41 +222,43 @@ namespace Rhino.Etl.Core.Operations
         /// <summary>
         /// Executes this operation
         /// </summary>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            Guard.Against<ArgumentException>(rows == null, "SqlBulkInsertOperation cannot accept a null enumerator");
-            PrepareSchema();
-            PrepareMapping();
-            CreateInputSchema();
-            using (SqlConnection connection = (SqlConnection)Use.Connection(ConnectionStringSettings))
-            using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
-            {
-                sqlBulkCopy = CreateSqlBulkCopy(connection, transaction);
-                DictionaryEnumeratorDataReader adapter = new DictionaryEnumeratorDataReader(_inputSchema, rows);
-                try
+            return new AsyncEnumerable<Row>(async yield => {
+                Guard.Against<ArgumentException>(rows == null, "SqlBulkInsertOperation cannot accept a null enumerator");
+                PrepareSchema();
+                PrepareMapping();
+                CreateInputSchema();
+                using (SqlConnection connection = (SqlConnection)await Database.Connection(ConnectionStringSettings, cancellationToken))
+                using (SqlTransaction transaction = (SqlTransaction) BeginTransaction(connection))
                 {
-                    sqlBulkCopy.WriteToServer(adapter);
-                }
-                catch (InvalidOperationException)
-                {
-                    CompareSqlColumns(connection, transaction, rows);
-                    throw;
-                }
+                    sqlBulkCopy = CreateSqlBulkCopy(connection, transaction);
+                    DictionaryEnumeratorDataReader adapter = new DictionaryEnumeratorDataReader(_inputSchema, rows, cancellationToken);
+                    try
+                    {
+                        await sqlBulkCopy.WriteToServerAsync(adapter, cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        await CompareSqlColumns(connection, transaction, rows, cancellationToken);
+                        throw;
+                    }
 
-                if (PipelineExecuter.HasErrors)
-                {
-                    Warn("Rolling back transaction in {0}", Name);
-                    if (transaction != null) transaction.Rollback();
-                    Warn("Rolled back transaction in {0}", Name);
+                    if (PipelineExecuter.HasErrors)
+                    {
+                        Warn("Rolling back transaction in {OperationName}", Name);
+                        if (transaction != null) transaction.Rollback();
+                        Warn("Rolled back transaction in {OperationName}", Name);
+                    }
+                    else
+                    {
+                        Debug("Committing {OperationName}", Name);
+                        if (transaction != null) transaction.Commit();
+                        Debug("Committed {OperationName}", Name);
+                    }
                 }
-                else
-                {
-                    Debug("Committing {0}", Name);
-                    if (transaction != null) transaction.Commit();
-                    Debug("Committed {0}", Name);
-                }
-            }
-            yield break;
+                yield.Break();
+            });
         }
 
         /// <summary>
@@ -261,7 +266,7 @@ namespace Rhino.Etl.Core.Operations
         ///    </summary>
         protected virtual void onSqlRowsCopied(object sender, SqlRowsCopiedEventArgs e)
         {
-            Debug("{0} rows    copied to database", e.RowsCopied);
+            Debug("{RowsCopied} rows    copied to database", e.RowsCopied);
         }
 
         ///    <summary>
@@ -287,14 +292,17 @@ namespace Rhino.Etl.Core.Operations
             return copy;
         }
 
-        private void CompareSqlColumns(SqlConnection connection, SqlTransaction transaction, IEnumerable<Row> rows)
+        private async Task CompareSqlColumns(SqlConnection         connection,
+                                             SqlTransaction        transaction,
+                                             IAsyncEnumerable<Row> rows,
+                                             CancellationToken     cancellationToken = default)
         {
             var command = connection.CreateCommand();
             command.CommandText = "select * from {TargetTable} where 1=0".Replace("{TargetTable}", TargetTable);
             command.CommandType = CommandType.Text;
             command.Transaction = transaction;
 
-            using (var reader = command.ExecuteReader(CommandBehavior.KeyInfo))
+            using (var reader = await command.ExecuteReaderAsync(CommandBehavior.KeyInfo, cancellationToken))
             {
                 var schemaTable = reader.GetSchemaTable();
                 var databaseColumns = schemaTable.Rows
@@ -333,20 +341,30 @@ namespace Rhino.Etl.Core.Operations
                                 (c.DatabaseType.IsNullable ? "?" : "")))
                             .ToArray()
                             ));
+
+                var list = new List<dynamic>();
+                await rows.ForEachAsync(row =>
+                {
+                    foreach (var column in databaseColumns)
+                    {
+                        if (column.Type != typeof(string)) continue;
+                        foreach (var mapping in Mappings)
+                        {
+                            if (mapping.Value != column.Name) continue;
+                            string name = mapping.Key;
+                            string value = (string) row[name];
+                            if (value != null && value.Length > column.MaxLength)
+                                list.Add(new {column.Name, column.MaxLength, Value = value});
+                        }
+                    }
+                }, cancellationToken);
+
                 var stringsTooLong =
-                    (from column in databaseColumns
-                     where column.Type == typeof(string)
-                     from mapping in Mappings
-                     where mapping.Value == column.Name
-                     let name = mapping.Key
-                     from row in rows
-                     let value = (string)row[name]
-                     where value != null && value.Length > column.MaxLength
-                     select new { column.Name, column.MaxLength, Value = value })
+                    list
                     .ToArray();
                 if (stringsTooLong.Any())
                     throw new InvalidOperationException(
-                        "The folowing columns have values too long for the target table: " +
+                        "The following columns have values too long for the target table: " +
                         string.Join(", ", stringsTooLong
                             .Select(s => "{s.Name}: max length is {s.MaxLength}, value is {s.Value}."
                                 .Replace("{s.Name}", s.Name)

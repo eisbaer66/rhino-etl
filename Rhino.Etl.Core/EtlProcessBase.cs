@@ -54,7 +54,7 @@ namespace Rhino.Etl.Core
         {
             operation.UseTransaction = UseTransaction;
             operations.Add(operation);
-            Debug("Register {0} in {1}", operation.Name, Name);
+            Debug("Register {OperationName} in {ProcessName}", operation.Name, Name);
             return (TDerived) this;
         }
 
@@ -65,7 +65,7 @@ namespace Rhino.Etl.Core
         public TDerived RegisterLast(IOperation operation)
         {
             lastOperations.Add(operation);
-            Debug("RegisterLast {0} in {1}", operation.Name, Name);
+            Debug("RegisterLast {OperationName} in {ProcessName}", operation.Name, Name);
             return (TDerived) this;
         }
 

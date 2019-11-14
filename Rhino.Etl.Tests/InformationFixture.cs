@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests
 {
     using Fibonacci;
@@ -7,15 +9,15 @@ namespace Rhino.Etl.Tests
     public class InformationFixture 
     {
         [Fact]
-        public void WillReportRowProcessedUsage()
+        public async Task WillReportRowProcessedUsage()
         {
             InMemoryFibonacci fibonacci = new InMemoryFibonacci();
-            fibonacci.Execute();
+            await fibonacci.Execute();
             Assert.Equal(25, fibonacci.FibonacciOperation.Statistics.OutputtedRows);
         }
 
         [Fact]
-        public void WillReportWhenOpeartionEnded()
+        public async Task WillReportWhenOpeartionEnded()
         {
             bool finished = false;
             InMemoryFibonacci fibonacci = new InMemoryFibonacci();
@@ -23,7 +25,7 @@ namespace Rhino.Etl.Tests
             {
                 finished = true;
             };
-            fibonacci.Execute();
+            await fibonacci.Execute();
             Assert.True(finished);
         }
     }

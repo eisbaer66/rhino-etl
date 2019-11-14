@@ -1,3 +1,8 @@
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Pipelines
 {
     using System;
@@ -18,30 +23,31 @@ namespace Rhino.Etl.Core.Pipelines
         /// <param name="pipelineName">The name.</param>
         /// <param name="pipeline">The pipeline.</param>
         /// <param name="translateRows">Translate the rows into another representation</param>
-        public void Execute(string pipelineName,
-                            ICollection<IOperation> pipeline,
-                            Func<IEnumerable<Row>, IEnumerable<Row>> translateRows)
+        /// <param name="cancellationToken"></param>
+        public async Task Execute(string pipelineName,
+            ICollection<IOperation> pipeline,
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateRows,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                IEnumerable<Row> enumerablePipeline = PipelineToEnumerable(pipeline, new List<Row>(), translateRows);
+                IAsyncEnumerable<Row> enumerablePipeline = PipelineToEnumerable(pipeline, new List<Row>().ToAsyncEnumerable(), translateRows, cancellationToken);
                 try
                 {
                     raiseNotifyExecutionStarting();
                     DateTime start = DateTime.Now;
-                    ExecutePipeline(enumerablePipeline);
+                    await ExecutePipeline(enumerablePipeline, cancellationToken);
                     raiseNotifyExecutionCompleting();
-                    Trace("Completed process {0} in {1}", pipelineName, DateTime.Now - start);
+                    Trace("Completed process {PipelineName} in {ExecutionTime}", pipelineName, DateTime.Now - start);
                 }
                 catch (Exception e)
                 {
-                    string errorMessage = string.Format("Failed to execute pipeline {0}", pipelineName);
-                    Error(e, errorMessage);
+                    Error(e, "Failed to execute pipeline {0}", new Tuple<string, object>("PipelineName", pipelineName));
                 }
             }
             catch (Exception e)
             {
-                Error(e, "Failed to create pipeline {0}", pipelineName);                
+                Error(e, "Failed to create pipeline {0}", new Tuple<string, object>("PipelineName", pipelineName));                
             }
 
             DisposeAllOperations(pipeline);
@@ -53,19 +59,27 @@ namespace Rhino.Etl.Core.Pipelines
         /// <param name="pipeline">The pipeline.</param>
         /// <param name="rows">The rows</param>
         /// <param name="translateEnumerable">Translate the rows from one representation to another</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public virtual IEnumerable<Row> PipelineToEnumerable(
-            ICollection<IOperation> pipeline, 
-            IEnumerable<Row> rows,
-            Func<IEnumerable<Row>, IEnumerable<Row>> translateEnumerable)
+        public virtual IAsyncEnumerable<Row> PipelineToEnumerable(
+            ICollection<IOperation> pipeline,
+            IAsyncEnumerable<Row> rows,
+            Func<IAsyncEnumerable<Row>, IAsyncEnumerable<Row>> translateEnumerable, 
+            CancellationToken cancellationToken = default)
         {
+            IList<Task> tasks = new List<Task>();
             foreach (var operation in pipeline)
             {
                 operation.PrepareForExecution(this);
-                var enumerator = operation.Execute(rows);
+                var enumerator = operation.Execute(rows, cancellationToken);
                 enumerator = translateEnumerable(enumerator);
-                rows = DecorateEnumerableForExecution(operation, enumerator);
+                AsyncEnumerableTask<Row> task = DecorateEnumerableForExecution(operation, enumerator, cancellationToken);
+                rows = task.Enumerable;
+                tasks.Add(task.Task);
             }
+
+            Task.WaitAll(tasks.ToArray());
+
             return rows;
         }
 
@@ -96,18 +110,19 @@ namespace Rhino.Etl.Core.Pipelines
         /// Since we use a pipeline, we need to force it to execute at some point. 
         /// We aren't really interested in the result, just in that the pipeline would execute.
         /// </summary>
-        protected virtual void ExecutePipeline(IEnumerable<Row> pipeline)
+        protected virtual async Task ExecutePipeline(IAsyncEnumerable<Row> pipeline,
+            CancellationToken cancellationToken = default)
         {
-            var enumerator = pipeline.GetEnumerator();
+            var enumerator = pipeline.GetAsyncEnumerator(cancellationToken);
             try
             {
 #pragma warning disable 642
-                while (enumerator.MoveNext()) ;
+                while (await enumerator.MoveNextAsync()) ;
 #pragma warning restore 642
             }
             catch (Exception e)
             {
-                Error(e, "Failed to execute operation {0}", enumerator.Current);
+                Error(e, "Failed to execute operation {0}", new Tuple<string, object>("@Row", enumerator.Current));
             }
         }
 
@@ -125,7 +140,7 @@ namespace Rhino.Etl.Core.Pipelines
                 }
                 catch (Exception e)
                 {
-                    Error(e, "Failed to disposed {0}", operation.Name);
+                    Error(e, "Failed to disposed {0}", new Tuple<string, object>("OperationName", operation.Name));
                 }
             }
         }
@@ -159,8 +174,12 @@ namespace Rhino.Etl.Core.Pipelines
         ///    <summary>
         /// Add a decorator to the enumerable for additional processing
         /// </summary>
-        /// <param name="operation">The operation.</param>
-        /// <param name="enumerator">The enumerator.</param>
-        protected abstract IEnumerable<Row> DecorateEnumerableForExecution(IOperation operation, IEnumerable<Row> enumerator);
+        ///    <param name="operation">The operation.</param>
+        ///    <param name="enumerator">The enumerator.</param>
+        ///    <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        protected abstract AsyncEnumerableTask<Row> DecorateEnumerableForExecution(
+            IOperation            operation,
+            IAsyncEnumerable<Row> enumerator,
+            CancellationToken     cancellationToken = default);
     }
 }

@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests.Dsl
@@ -11,25 +13,29 @@ namespace Rhino.Etl.Tests.Dsl
     public class SqlBulkInsertFixture : BaseUserToPeopleTest
     {
         [Fact]
-        public void CanCompile()
+        public async Task CanCompile()
         {
+            await SetupTables();
+
             using (EtlProcess process = CreateDslInstance("Dsl/UsersToPeopleBulk.boo"))
                 Assert.NotNull(process);
         }
 
         [Fact]
-        public void CanCopyTableWithTransform()
+        public async Task CanCopyTableWithTransform()
         {
-            using (EtlProcess process = CreateDslInstance("Dsl/UsersToPeopleBulk.boo"))
-                process.Execute();
+            await SetupTables();
 
-            List<string[]> names = Use.Transaction<List<string[]>>("test", delegate(IDbCommand cmd)
+            using (EtlProcess process = CreateDslInstance("Dsl/UsersToPeopleBulk.boo"))
+                await process.Execute();
+
+            List<string[]> names = await Database.Transaction<List<string[]>>("test", async delegate(DbCommand cmd)
             {
                 List<string[]> tuples = new List<string[]>();
                 cmd.CommandText = "SELECT firstname, lastname from people order by userid";
-                using (IDataReader reader = cmd.ExecuteReader())
+                using (DbDataReader reader = await cmd.ExecuteReaderAsync())
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         tuples.Add(new string[] { reader.GetString(0), reader.GetString(1) });
                     }

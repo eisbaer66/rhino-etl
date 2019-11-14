@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
+using Nito.AsyncEx;
 
 namespace Rhino.Etl.Core.Enumerables
 {
@@ -9,12 +10,12 @@ namespace Rhino.Etl.Core.Enumerables
     /// An iterator to be consumed by concurrent threads only which supplies an element of the decorated enumerable one by one
     /// </summary>
     /// <typeparam name="T">The type of the decorated enumerable</typeparam>
-    public class GatedThreadSafeEnumerator<T> :    WithLoggingMixin, IEnumerable<T>, IEnumerator<T>
+    public class GatedThreadSafeEnumerator<T> :    WithLoggingMixin, IAsyncEnumerable<T>, IAsyncEnumerator<T>
     {
         private readonly int numberOfConsumers;
-        private readonly IEnumerator<T> innerEnumerator;
+        private readonly IAsyncEnumerator<T> innerEnumerator;
         private int callsToMoveNext;
-        private readonly object sync = new object();
+        private readonly AsyncMonitor monitor = new AsyncMonitor();
         private bool moveNext;
         private T current;
         private int consumersLeft;
@@ -24,36 +25,34 @@ namespace Rhino.Etl.Core.Enumerables
         /// </summary>
         /// <param name="numberOfConsumers">The number of consumers that will be consuming this iterator concurrently</param>
         /// <param name="source">The decorated enumerable that will be iterated and fed one element at a time to all consumers</param>
-        public GatedThreadSafeEnumerator(int numberOfConsumers, IEnumerable<T> source)
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        public GatedThreadSafeEnumerator(int                 numberOfConsumers,
+                                         IAsyncEnumerable<T> source,
+                                         CancellationToken   cancellationToken = default)
         {
             this.numberOfConsumers = numberOfConsumers;
             consumersLeft = numberOfConsumers;
-            innerEnumerator = source.GetEnumerator();
+            innerEnumerator = source.GetAsyncEnumerator(cancellationToken);
         }
 
         ///    <summary>
         ///    Get    the    enumerator
         ///    </summary>
         ///    <returns></returns>
-        public IEnumerator<T> GetEnumerator()
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             return this;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         ///    <summary>
         ///    Dispose    the    enumerator
         ///    </summary>
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             if(Interlocked.Decrement(ref consumersLeft) == 0)
             {
                 Debug("Disposing inner enumerator");
-                innerEnumerator.Dispose();
+                await innerEnumerator.DisposeAsync();
             }
         }
 
@@ -61,24 +60,25 @@ namespace Rhino.Etl.Core.Enumerables
         ///    MoveNext the enumerator
         ///    </summary>
         ///    <returns></returns>
-        public bool MoveNext()
+        public async ValueTask<bool> MoveNextAsync()
         {
-            lock (sync)
+            using(await monitor.EnterAsync())
+            {
                 if (Interlocked.Increment(ref callsToMoveNext) == numberOfConsumers)
                 {
                     callsToMoveNext = 0;
-                    moveNext = innerEnumerator.MoveNext();
+                    moveNext = await innerEnumerator.MoveNextAsync();
                     current = innerEnumerator.Current;
 
                     Debug("Pulsing all waiting threads");
 
-                    Monitor.PulseAll(sync);
+                    monitor.PulseAll();
                 }
                 else
                 {
-                    Monitor.Wait(sync);
+                    await monitor.WaitAsync();
                 }
-
+            }
             return moveNext;
         }
 
@@ -96,11 +96,6 @@ namespace Rhino.Etl.Core.Enumerables
         public T Current
         {
             get { return current; }
-        }
-
-        object IEnumerator.Current
-        {
-            get { return ((IEnumerator<T>)this).Current; }
         }
 
         ///    <summary>

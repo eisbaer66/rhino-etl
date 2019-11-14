@@ -2,8 +2,10 @@
 using Rhino.Etl.Core.Operations;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
 
 namespace Rhino.Etl.Tests.Branches
 {
@@ -19,21 +21,41 @@ namespace Rhino.Etl.Tests.Branches
                  .Register(new Subtract(true))));
         }
     }
+    internal class BranchingOperationToStringProcess : EtlProcess
+    {
+        private readonly StringBuilder stringBuilder;
+
+        public BranchingOperationToStringProcess(StringBuilder stringBuilder)
+        {
+            this.stringBuilder = stringBuilder ?? throw new ArgumentNullException(nameof(stringBuilder));
+        }
+        protected override void Initialize()
+        {
+            Register(new GenerateTuples());
+            Register(new BranchingOperation()
+              .Add(Partial
+                 .Register(new ToString(stringBuilder)))
+              .Add(Partial
+                 .Register(new ToString(stringBuilder))));
+        }
+    }
 
     internal class GenerateTuples : AbstractOperation
     {
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            for (int i = 0; i < 2; i++)
-            {
-                for (int j = 0; j < 2; j++)
+            return new AsyncEnumerable<Row>(async yield => {
+                for (int i = 0; i < 2; i++)
                 {
-                    var row = new Row();
-                    row["a"] = i;
-                    row["b"] = j;
-                    yield return row;
+                    for (int j = 0; j < 2; j++)
+                    {
+                        var row = new Row();
+                        row["a"] = i;
+                        row["b"] = j;
+                        await yield.ReturnAsync(row);
+                    }
                 }
-            }
+            });
         }
     }
 
@@ -44,21 +66,22 @@ namespace Rhino.Etl.Tests.Branches
         {
         }
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield yield)
         {
-            foreach (var row in rows)
+            var a = row["a"] as int?;
+            var b = row["b"] as int?;
+            row["operation"] = "subtract";
+            row["result"] = a - b;
+            if (withErrors)
             {
-                var a = row["a"] as int?;
-                var b = row["b"] as int?;
-                row["operation"] = "subtract";
-                row["result"] = a - b;
-                if (withErrors) { Error(new ApplicationException(), "Error in Subtract"); }
-                yield return row;
+                Error(new ApplicationException(), "Error in Subtract");
             }
+
+            await yield.ReturnAsync(row);
         }
     }
 
-    internal abstract class AbstractOperationWithErrors : AbstractOperation
+    internal abstract class AbstractOperationWithErrors : AbstractProcessingOperation
     {
         protected readonly bool withErrors;
 
@@ -75,19 +98,32 @@ namespace Rhino.Etl.Tests.Branches
         {
         }
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield yield)
         {
-            foreach (var row in rows)
-            {
-                var a = row["a"] as int?;
-                var b = row["b"] as int?;
-                row["operation"] = "add";
-                row["result"] = a + b;
+            var a = row["a"] as int?;
+            var b = row["b"] as int?;
+            row["operation"] = "add";
+            row["result"] = a + b;
 
-                if (withErrors) { Error(new ApplicationException(), "Error in Add"); }
+            if (withErrors) { Error(new ApplicationException(), "Error in Add"); }
 
-                yield return row;
-            }
+            await yield.ReturnAsync(row);
+        }
+    }
+
+    internal class ToString : AbstractProcessingOperation
+    {
+        private readonly StringBuilder stringBuilder;
+
+        public ToString(StringBuilder stringBuilder)
+        {
+            this.stringBuilder = stringBuilder ?? throw new ArgumentNullException(nameof(stringBuilder));
+        }
+
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield yield)
+        {
+            stringBuilder.Append(row["operation"] + " ");
+            await yield.ReturnAsync(row);
         }
     }
 }

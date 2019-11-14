@@ -1,4 +1,7 @@
 using System.Configuration;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Core
@@ -25,7 +28,7 @@ namespace Rhino.Etl.Core
             get { return pipelineExecuter; }
             set
             {
-                Info("Setting PipelineExecutor to {0}", value.GetType().ToString());
+                Info("Setting PipelineExecutor to {PipelineExecutor}", value.GetType().ToString());
                 pipelineExecuter = value;
             }
         }
@@ -67,13 +70,13 @@ namespace Rhino.Etl.Core
         /// <summary>
         /// Executes this process
         /// </summary>
-        public void Execute()
+        public async Task Execute(CancellationToken cancellationToken = default)
         {
             Initialize();
             MergeLastOperationsToOperations();
             RegisterToOperationsEvents();
-            Trace("Starting to execute {0}", Name);
-            PipelineExecuter.Execute(Name, operations, TranslateRows);
+            Trace("Starting to execute {ProcessName}", Name);
+            await PipelineExecuter.Execute(Name, operations, TranslateRows, cancellationToken);
 
             PostProcessing();
         }
@@ -81,7 +84,7 @@ namespace Rhino.Etl.Core
         /// <summary>
         /// Translate the rows from one representation to another
         /// </summary>
-        public virtual IEnumerable<Row> TranslateRows(IEnumerable<Row> rows)
+        public virtual IAsyncEnumerable<Row> TranslateRows(IAsyncEnumerable<Row> rows)
         {
             return rows;
         }
@@ -102,7 +105,7 @@ namespace Rhino.Etl.Core
         /// <param name="op">The op.</param>
         protected virtual void OnFinishedProcessing(IOperation op)
         {
-            Trace("Finished {0}: {1}", op.Name, op.Statistics);
+            Trace("Finished {OperationName}: {@Statistics}", op.Name, op.Statistics);
         }
 
         /// <summary>
@@ -120,9 +123,9 @@ namespace Rhino.Etl.Core
         protected virtual void OnRowProcessed(IOperation op, Row dictionary)
         {
             if (op.Statistics.OutputtedRows % 1000 == 0)
-                Info("Processed {0} rows in {1}", op.Statistics.OutputtedRows, op.Name);
+                Info("Processed {CountOfOutputtedRows} rows in {OperationName}", op.Statistics.OutputtedRows, op.Name);
             else
-                Debug("Processed {0} rows in {1}", op.Statistics.OutputtedRows, op.Name);
+                Debug("Processed {CountOfOutputtedRows} rows in {OperationName}", op.Statistics.OutputtedRows, op.Name);
         }
 
         /// <summary>
@@ -131,10 +134,13 @@ namespace Rhino.Etl.Core
         /// <typeparam name="T"></typeparam>
         /// <param name="connectionName">Name of the connection.</param>
         /// <param name="commandText">The command text.</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns></returns>
-        protected static T ExecuteScalar<T>(string connectionName, string commandText)
+        protected static async Task<T> ExecuteScalar<T>(string            connectionName,
+                                            string            commandText,
+                                            CancellationToken cancellationToken = default)
         {
-            return ExecuteScalar<T>(ConfigurationManager.ConnectionStrings[connectionName], commandText);
+            return await ExecuteScalar<T>(ConfigurationManager.ConnectionStrings[connectionName], commandText, cancellationToken);
         }
 
         /// <summary>
@@ -143,15 +149,20 @@ namespace Rhino.Etl.Core
         /// <typeparam name="T"></typeparam>
         /// <param name="connectionStringSettings">The connection string settings node to use</param>
         /// <param name="commandText">The command text.</param>
+        /// <param name="cancellationToken">The cancellation instruction.</param>
         /// <returns></returns>
-        protected static T ExecuteScalar<T>(ConnectionStringSettings connectionStringSettings, string commandText)
+        protected static async Task<T> ExecuteScalar<T>(ConnectionStringSettings connectionStringSettings,
+                                                        string                   commandText,
+                                                        CancellationToken        cancellationToken = default)
         {
-            return Use.Transaction<T>(connectionStringSettings, delegate(IDbCommand cmd)
-            {
-                cmd.CommandText = commandText;
-                object scalar = cmd.ExecuteScalar();
-                return (T)(scalar ?? default(T));
-            });
+            return await Database.Transaction<T>(connectionStringSettings,
+                                            async delegate(DbCommand cmd)
+                                            {
+                                                cmd.CommandText = commandText;
+                                                object scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+                                                return (T) (scalar ?? default(T));
+                                            },
+                                            cancellationToken);
         }
 
         /// <summary>

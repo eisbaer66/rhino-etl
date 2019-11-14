@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace Rhino.Etl.Core.Pipelines
 {
     using System.Collections.Generic;
@@ -14,9 +16,13 @@ namespace Rhino.Etl.Core.Pipelines
         /// </summary>
         /// <param name="operation">The operation.</param>
         /// <param name="enumerator">The enumerator.</param>
-        protected override IEnumerable<Row> DecorateEnumerableForExecution(IOperation operation, IEnumerable<Row> enumerator)
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        protected override AsyncEnumerableTask<Row> DecorateEnumerableForExecution(
+            IOperation            operation,
+            IAsyncEnumerable<Row> enumerator,
+            CancellationToken cancellationToken = default)
         {
-            return new CachingEnumerable<Row>(new EventRaisingEnumerator(operation, enumerator));
+            return AsyncEnumerableTask<Row>.Completed(new CachingEnumerable<Row>(new EventRaisingEnumerator(operation, enumerator), cancellationToken));
         }
     }
 }

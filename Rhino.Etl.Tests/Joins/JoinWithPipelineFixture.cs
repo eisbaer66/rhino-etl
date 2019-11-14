@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
 using Xunit;
@@ -8,7 +11,7 @@ namespace Rhino.Etl.Tests.Joins
     public class JoinWithPipelineFixture : BaseJoinFixture
     {
         [Fact]
-        public void InnerJoinWithDefaultLeftJoin()
+        public async Task InnerJoinWithDefaultLeftJoin()
         {
             var items = new List<Row>();
 
@@ -18,14 +21,14 @@ namespace Rhino.Etl.Tests.Joins
                 new ResultsOperation(items)
                 );
 
-            result.Execute();
+            await result.Execute();
 
-            Assert.Equal(1, items.Count);
+            Assert.Single(items);
             Assert.Equal(3, items[0]["person_id"]);
         }
 
         [Fact]
-        public void RightJoinWithDefaultLeftJoin()
+        public async Task RightJoinWithDefaultLeftJoin()
         {
             var items = new List<Row>();
 
@@ -35,7 +38,7 @@ namespace Rhino.Etl.Tests.Joins
                 new ResultsOperation(items)
                 );
 
-            result.Execute();
+            await result.Execute();
 
             Assert.Equal(2, items.Count);
             Assert.Equal(3, items[0]["person_id"]);
@@ -44,7 +47,7 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void LeftJoinWithDefaultLeftJoin()
+        public async Task LeftJoinWithDefaultLeftJoin()
         {
             var items = new List<Row>();
 
@@ -54,7 +57,7 @@ namespace Rhino.Etl.Tests.Joins
                 new ResultsOperation(items)
                 );
 
-            result.Execute();
+            await result.Execute();
 
             Assert.Equal(2, items.Count);
             Assert.Equal(3, items[0]["person_id"]);
@@ -63,7 +66,7 @@ namespace Rhino.Etl.Tests.Joins
         }
 
         [Fact]
-        public void FullJoinWithDefaultLeftJoin()
+        public async Task FullJoinWithDefaultLeftJoin()
         {
             var items = new List<Row>();
 
@@ -73,7 +76,7 @@ namespace Rhino.Etl.Tests.Joins
                 new ResultsOperation(items)
                 );
 
-            result.Execute();
+            await result.Execute();
 
             Assert.Equal(3, items.Count);
 
@@ -110,11 +113,18 @@ namespace Rhino.Etl.Tests.Joins
 
             List<Row> returnRows = null;
 
-            public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+            public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows,
+                CancellationToken cancellationToken = default)
             {
-                returnRows.AddRange(rows);
+                return new AsyncEnumerable<Row>(async yield =>
+                {
+                    await rows.ForEachAsync(async r =>
+                    {
+                        returnRows.Add(r);
+                        await yield.ReturnAsync(r);
+                    }, cancellationToken);
 
-                return rows;
+                });
             }
         }
     }

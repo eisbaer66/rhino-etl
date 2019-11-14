@@ -1,16 +1,21 @@
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.UsingDAL
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class GetAllUsers : AbstractOperation
+    public class GetAllUsers : AbstractYieldOperation
     {
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row> rows, AsyncEnumerator<Row>.Yield yield,
+            CancellationToken cancellationToken = default)
         {
             foreach (User user in MySimpleDal.GetUsers())
             {
-                yield return Row.FromObject(user);
+                await @yield.ReturnAsync(Row.FromObject(user));
             }
         }
     }

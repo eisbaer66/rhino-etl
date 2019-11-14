@@ -1,4 +1,5 @@
-using Common.Logging;
+using System.Linq;
+using Rhino.Etl.Core.Logging;
 
 namespace Rhino.Etl.Core
 {
@@ -19,7 +20,7 @@ namespace Rhino.Etl.Core
         /// </summary>
         protected WithLoggingMixin()
         {
-            log = LogManager.GetLogger(GetType());
+            log = LogProvider.GetLogger(GetType());
         }
 
         /// <summary>
@@ -28,18 +29,19 @@ namespace Rhino.Etl.Core
         /// <param name="exception">The exception.</param>
         /// <param name="format">The format.</param>
         /// <param name="args">The args.</param>
-        protected void Error(Exception exception, string format, params object[] args)
+        protected void Error(Exception exception, string format, params Tuple<string, object>[] args)
         {
-            string message = string.Format(CultureInfo.InvariantCulture, format, args);
+            string logtemplate = string.Format(CultureInfo.InvariantCulture, format, args.Select(a => "{"+ a.Item1+ "}").ToArray());
+            string message = string.Format(CultureInfo.InvariantCulture, format, args.Select(a => a.Item2).ToArray());
             string errorMessage;
-            if(exception!=null)
+            if (exception != null)
                 errorMessage = string.Format("{0}: {1}", message, exception.Message);
             else
                 errorMessage = message.ToString();
             errors.Add(new RhinoEtlException(errorMessage, exception));
-            if (log.IsErrorEnabled)
+            if (log.IsErrorEnabled())
             {
-                log.Error(message, exception);
+                log.ErrorException(logtemplate, exception, args.Select(a => a.Item2).ToArray());
             }
         }
 
@@ -50,9 +52,9 @@ namespace Rhino.Etl.Core
         /// <param name="args">The args.</param>
         protected void Warn(string format, params object[] args)
         {
-            if (log.IsWarnEnabled)
+            if (log.IsWarnEnabled())
             {
-                log.Warn(string.Format(CultureInfo.InvariantCulture, format, args), null);
+                log.WarnFormat(format, args);
             }
         }
 
@@ -63,9 +65,9 @@ namespace Rhino.Etl.Core
         /// <param name="args">The args.</param>
         protected void Debug(string format, params object[] args)
         {
-            if (log.IsDebugEnabled)
+            if (log.IsDebugEnabled())
             {
-                log.Debug(string.Format(CultureInfo.InvariantCulture, format, args), null);
+                log.DebugFormat(format, args);
             }
         }
 
@@ -77,9 +79,9 @@ namespace Rhino.Etl.Core
         /// <param name="args">The args.</param>
         protected void Trace(string format, params object[] args)
         {
-            if (log.IsTraceEnabled)
+            if (log.IsTraceEnabled())
             {
-                log.Trace(string.Format(CultureInfo.InvariantCulture, format, args), null);
+                log.TraceFormat(format, args);
             }
         }
 
@@ -91,9 +93,9 @@ namespace Rhino.Etl.Core
         /// <param name="args">The args.</param>
         protected void Info(string format, params object[] args)
         {
-            if (log.IsInfoEnabled)
+            if (log.IsInfoEnabled())
             {
-                log.Info(string.Format(CultureInfo.InvariantCulture, format, args), null);
+                log.InfoFormat(format, args);
             }
         }
 

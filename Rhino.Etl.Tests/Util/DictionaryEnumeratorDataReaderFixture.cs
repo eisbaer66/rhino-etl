@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests.Util
 {
     using System;
@@ -14,13 +17,13 @@ namespace Rhino.Etl.Tests.Util
         public void WillDisposeInternalEnumeratorAndEnumerableWhenDisposed()
         {
             MockRepository mocks = new MockRepository();
-            IEnumerable<Row> enumerable = mocks.DynamicMultiMock<IEnumerable<Row>>(typeof(IDisposable));
-            IEnumerator<Row> enumerator = mocks.DynamicMock<IEnumerator<Row>>();
+            IAsyncEnumerable<Row> enumerable = mocks.DynamicMultiMock<IAsyncEnumerable<Row>>(typeof(IAsyncDisposable));
+            IAsyncEnumerator<Row> enumerator = mocks.DynamicMock<IAsyncEnumerator<Row>>();
             using(mocks.Record())
             {
-                SetupResult.For(enumerable.GetEnumerator()).Return(enumerator);
-                enumerator.Dispose();
-                ((IDisposable)enumerable).Dispose();
+                SetupResult.For(enumerable.GetAsyncEnumerator(Arg<CancellationToken>.Is.Anything)).Return(enumerator);
+                SetupResult.For(enumerator.DisposeAsync()).Return(new ValueTask());
+                SetupResult.For(((IAsyncDisposable)enumerable).DisposeAsync()).Return(new ValueTask());
             }
             using (mocks.Playback())
             {

@@ -1,5 +1,6 @@
 using System.Configuration;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Operations;
 using Rhino.Mocks;
 
@@ -15,30 +16,36 @@ namespace Rhino.Etl.Tests
     public class SqlBulkInsertOperationFixture : BaseFibonacciTest
     {
         [Fact]
-        public void CanInsertToDatabaseFromInMemoryCollection()
+        public async Task CanInsertToDatabaseFromInMemoryCollection()
         {
+            await EnsureFibonacciTableExists();
+
             BulkInsertFibonacciToDatabase fibonacci = new BulkInsertFibonacciToDatabase(25,Should.WorkFine);
-            fibonacci.Execute();
+            await fibonacci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
-        public void CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
+        public async Task CanInsertToDatabaseFromConnectionStringSettingsAndInMemoryCollection()
         {
+            await EnsureFibonacciTableExists();
+
             BulkInsertFibonacciToDatabaseFromConnectionStringSettings fibonacci = new BulkInsertFibonacciToDatabaseFromConnectionStringSettings(25, Should.WorkFine);
-            fibonacci.Execute();
+            await fibonacci.Execute();
 
-            Assert25ThFibonacci();
+            await Assert25ThFibonacci();
         }
 
         [Fact]
-        public void WhenErrorIsThrownWillRollbackTransaction()
+        public async Task WhenErrorIsThrownWillRollbackTransaction()
         {
+            await EnsureFibonacciTableExists();
+
             BulkInsertFibonacciToDatabase fibonaci = new BulkInsertFibonacciToDatabase(25, Should.Throw);
-            fibonaci.Execute();
-            Assert.Equal(1, new List<Exception>(fibonaci.GetAllErrors()).Count);
-            AssertFibonacciTableEmpty();
+            await fibonaci.Execute();
+            Assert.Single(new List<Exception>(fibonaci.GetAllErrors()));
+            await AssertFibonacciTableEmpty();
         }
     }
 

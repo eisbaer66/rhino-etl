@@ -1,3 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.UsingDAL
 {
     using System.Collections.Generic;
@@ -5,15 +9,17 @@ namespace Rhino.Etl.Tests.UsingDAL
     using Rhino.Etl.Core.Files;
     using Rhino.Etl.Core.Operations;
 
-    public class ReadUsersFromFile : AbstractOperation
+    public class ReadUsersFromFile : AbstractYieldOperation
     {
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row>      rows,
+                                                   AsyncEnumerator<Row>.Yield yield,
+                                                   CancellationToken          cancellationToken = default)
         {
             using(FileEngine file = FluentFile.For<UserRecord>().From("users.txt"))
             {
                 foreach (object obj in file)
                 {
-                    yield return Row.FromObject(obj);
+                    await @yield.ReturnAsync(Row.FromObject(obj));
                 }
             }
         }

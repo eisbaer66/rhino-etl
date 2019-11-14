@@ -82,11 +82,12 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             MergeLastOperationsToOperations();
-            return pipelineExeuter.PipelineToEnumerable(operations, rows, enumerable => enumerable);
+            return pipelineExeuter.PipelineToEnumerable(operations, rows, enumerable => enumerable, cancellationToken);
         }
 
         ///<summary>

@@ -1,4 +1,6 @@
-﻿namespace Rhino.Etl.Tests.Aggregation
+﻿using System.Threading.Tasks;
+
+namespace Rhino.Etl.Tests.Aggregation
 {
     using Core;
     using Rhino.Etl.Core.Operations;

@@ -1,4 +1,7 @@
 using System.Configuration;
+using System.Data.Common;
+using System.Threading;
+using Dasync.Collections;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Core.Operations
@@ -29,32 +32,35 @@ namespace Rhino.Etl.Core.Operations
         {
             UseTransaction = true;
         }
-       
+
         /// <summary>
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
-            using (IDbTransaction transaction = BeginTransaction(connection))
-            {
-                using (currentCommand = connection.CreateCommand())
+            return new AsyncEnumerable<Row>(async yield => {
+                using (DbConnection connection = await Database.Connection(ConnectionStringSettings, cancellationToken))
+                using (DbTransaction transaction = BeginTransaction(connection))
                 {
-                    currentCommand.Transaction = transaction;
-                    PrepareCommand(currentCommand);
-                    using (IDataReader reader = currentCommand.ExecuteReader())
+                    using (currentCommand = connection.CreateCommand())
                     {
-                        while (reader.Read())
+                        currentCommand.Transaction = transaction;
+                        PrepareCommand(currentCommand);
+                        using (DbDataReader reader = await currentCommand.ExecuteReaderAsync(cancellationToken))
                         {
-                            yield return CreateRowFromReader(reader);
+                            while (await reader.ReadAsync(cancellationToken))
+                            {
+                                await yield.ReturnAsync(CreateRowFromReader(reader));
+                            }
                         }
                     }
-                }
 
-                if (transaction != null) transaction.Commit();
-            }
+                    if (transaction != null) transaction.Commit();
+                }
+            });
         }
 
         /// <summary>

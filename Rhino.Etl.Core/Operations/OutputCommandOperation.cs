@@ -1,4 +1,8 @@
 using System.Configuration;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
 using Rhino.Etl.Core.Enumerables;
 using Rhino.Etl.Core.Infrastructure;
 
@@ -33,36 +37,41 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            using (IDbConnection connection = Use.Connection(ConnectionStringSettings))
-            using (IDbTransaction transaction = BeginTransaction(connection))
-            {
-                foreach (Row row in new SingleRowEventRaisingEnumerator(this, rows))
-                {
-                    using (IDbCommand cmd = connection.CreateCommand())
-                    {
-                        currentCommand = cmd;
-                        currentCommand.Transaction = transaction;
-                        PrepareCommand(currentCommand, row);
-                        currentCommand.ExecuteNonQuery();
-                    }
-                }
-                if (PipelineExecuter.HasErrors)
-                {
-                    Warn("Rolling back transaction in {0}", Name);
-                    if (transaction != null) transaction.Rollback();
-                    Warn("Rolled back transaction in {0}", Name);
-                }
-                else
-                {
-                    Debug("Committing {0}", Name);
-                    if (transaction != null) transaction.Commit();
-                    Debug("Committed {0}", Name);
-                }
-            }
-            yield break;
+            return new AsyncEnumerable<Row>(async yield => {
+                await rows
+                .ForEachAsync(async row =>
+                                  {
+                                      using (DbConnection connection = await Database.Connection(ConnectionStringSettings, cancellationToken))
+                                      using (DbTransaction transaction = BeginTransaction(connection))
+                                      {
+                                          using (DbCommand cmd = connection.CreateCommand())
+                                          {
+                                              currentCommand             = cmd;
+                                              currentCommand.Transaction = transaction;
+                                              PrepareCommand(currentCommand, row);
+                                              await currentCommand.ExecuteNonQueryAsync(cancellationToken);
+                                          }
+                                          if (PipelineExecuter.HasErrors)
+                                          {
+                                              Warn("Rolling back transaction in {OperationName}", Name);
+                                              if (transaction != null) transaction.Rollback();
+                                              Warn("Rolled back transaction in {OperationName}", Name);
+                                          }
+                                          else
+                                          {
+                                              Debug("Committing {OperationName}", Name);
+                                              if (transaction != null) transaction.Commit();
+                                              Debug("Committed {OperationName}", Name);
+                                          }
+                                      }
+
+                                      await yield.ReturnAsync(row);
+                                  }, cancellationToken: cancellationToken);
+            });
         }
 
         /// <summary>

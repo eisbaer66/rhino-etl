@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.Aggregation
 {
     using System.Collections.Generic;
@@ -8,24 +11,24 @@ namespace Rhino.Etl.Tests.Aggregation
     public class AggregationFixture : BaseAggregationFixture
     {
         [Fact]
-        public void AggregateRowCount()
+        public async Task AggregateRowCount()
         {
             using (RowCount rowCount = new RowCount())
             {
-                IEnumerable<Row> result = rowCount.Execute(rows);
-                List<Row> items = new List<Row>(result);
-                Assert.Equal(1, items.Count);
+                IAsyncEnumerable<Row> result = rowCount.Execute(rows.ToAsyncEnumerable());
+                List<Row> items = await result.ToListAsync();
+                Assert.Single(items);
                 Assert.Equal(6, items[0]["count"]);
             }
         }
 
         [Fact]
-        public void AggregateCostPerProduct()
+        public async Task AggregateCostPerProduct()
         {
             using (CostPerProductAggregation aggregation = new CostPerProductAggregation())
             {
-                IEnumerable<Row> result = aggregation.Execute(rows);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = aggregation.Execute(rows.ToAsyncEnumerable());
+                List<Row> items = await result.ToListAsync();
                 Assert.Equal(3, items.Count);
                 Assert.Equal("milk", items[0]["name"]);
                 Assert.Equal("sugar", items[1]["name"]);
@@ -38,12 +41,12 @@ namespace Rhino.Etl.Tests.Aggregation
         }
 
         [Fact]
-        public void SortedAggregateCostPerProduct()
+        public async Task SortedAggregateCostPerProduct()
         {
             using (SortedCostPerProductAggregation aggregation = new SortedCostPerProductAggregation())
             {
-                IEnumerable<Row> result = aggregation.Execute(rows);
-                List<Row> items = new List<Row>(result);
+                IAsyncEnumerable<Row> result = aggregation.Execute(rows.ToAsyncEnumerable());
+                List<Row> items = await result.ToListAsync();
                 Assert.Equal(4, items.Count);
                 Assert.Equal("milk", items[0]["name"]);
                 Assert.Equal("sugar", items[1]["name"]);

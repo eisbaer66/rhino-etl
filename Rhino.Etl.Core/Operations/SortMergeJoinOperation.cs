@@ -1,4 +1,7 @@
-﻿namespace Rhino.Etl.Core.Operations
+﻿using System.Threading;
+using Dasync.Collections;
+
+namespace Rhino.Etl.Core.Operations
 {
     using System;
     using System.Collections;
@@ -44,63 +47,66 @@
         /// Executes this operation
         /// </summary>
         /// <param name="rows">Rows in pipeline. These are only used if a left part of the join was not specified.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            Initialize();
+            return new AsyncEnumerable<Row>(async yield => {
+                Initialize();
 
-            Guard.Against(left == null, "Left branch of a join cannot be null");
-            Guard.Against(right == null, "Right branch of a join cannot be null");
+                Guard.Against(left == null, "Left branch of a join cannot be null");
+                Guard.Against(right == null, "Right branch of a join cannot be null");
 
-            IEnumerator leftRows = new EventRaisingEnumerator(left, left.Execute(leftRegistered ? null : rows)).GetEnumerator();
-            leftRows.MoveNext();
-            Row leftRow = (Row) leftRows.Current;
+                IAsyncEnumerator<Row> leftRows = new EventRaisingEnumerator(left, left.Execute(leftRegistered ? null : rows, cancellationToken)).GetAsyncEnumerator(cancellationToken);
+                await leftRows.MoveNextAsync();
+                Row leftRow = (Row) leftRows.Current;
 
-            IEnumerator rightRows = new EventRaisingEnumerator(right, right.Execute(null)).GetEnumerator();
-            rightRows.MoveNext();
-            Row rightRow = (Row) rightRows.Current;
+                IAsyncEnumerator<Row> rightRows = new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)).GetAsyncEnumerator(cancellationToken);
+                await rightRows.MoveNextAsync();
+                Row rightRow = (Row) rightRows.Current;
 
-            while (leftRow != null || rightRow != null)
-            {
-                Row mergedRow = null;
-
-                var match = CompareRows(leftRow, rightRow);
-                if (match == 0)
+                while (leftRow != null || rightRow != null)
                 {
-                    mergedRow = MergeRows(leftRow, rightRow);
-                    leftRow = leftRows.MoveNext()
-                        ? (Row) leftRows.Current
-                        : null;
-                    rightRow = rightRows.MoveNext()
-                        ? (Row) rightRows.Current
-                        : null;
-                }
-                else if (match < 0)
-                {
-                    if ((JoinType & JoinType.Left) != 0)
-                        mergedRow = MergeRows(leftRow, new Row());
-                    else
-                        LeftOrphanRow(leftRow);
+                    Row mergedRow = null;
 
-                    leftRow = leftRows.MoveNext()
-                        ? (Row)leftRows.Current
-                        : null;
-                }
-                else if (match > 0)
-                {
-                    if ((JoinType & JoinType.Right) != 0)
-                        mergedRow = MergeRows(new Row(), rightRow);
-                    else
-                        RightOrphanRow(rightRow);
+                    var match = CompareRows(leftRow, rightRow);
+                    if (match == 0)
+                    {
+                        mergedRow = MergeRows(leftRow, rightRow);
+                        leftRow = await leftRows.MoveNextAsync()
+                            ? (Row) leftRows.Current
+                            : null;
+                        rightRow = await rightRows.MoveNextAsync()
+                            ? (Row) rightRows.Current
+                            : null;
+                    }
+                    else if (match < 0)
+                    {
+                        if ((JoinType & JoinType.Left) != 0)
+                            mergedRow = MergeRows(leftRow, new Row());
+                        else
+                            LeftOrphanRow(leftRow);
 
-                    rightRow = rightRows.MoveNext()
-                        ? (Row)rightRows.Current
-                        : null;
-                }
+                        leftRow = await leftRows.MoveNextAsync()
+                            ? (Row)leftRows.Current
+                            : null;
+                    }
+                    else if (match > 0)
+                    {
+                        if ((JoinType & JoinType.Right) != 0)
+                            mergedRow = MergeRows(new Row(), rightRow);
+                        else
+                            RightOrphanRow(rightRow);
 
-                if (mergedRow != null)
-                    yield return mergedRow;
-            }
+                        rightRow = await rightRows.MoveNextAsync()
+                            ? (Row)rightRows.Current
+                            : null;
+                    }
+
+                    if (mergedRow != null)
+                        await yield.ReturnAsync(mergedRow);
+                }
+            });
         }
 
         private int CompareRows(Row leftRow, Row rightRow)

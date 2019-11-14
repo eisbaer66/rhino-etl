@@ -1,10 +1,14 @@
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.LoadTest
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class GenerateUsers : AbstractOperation
+    public class GenerateUsers : AbstractYieldOperation
     {
         public GenerateUsers(int expectedCount)
         {
@@ -13,12 +17,9 @@ namespace Rhino.Etl.Tests.LoadTest
 
         private int expectedCount;
 
-        /// <summary>
-        /// Executes this operation
-        /// </summary>
-        /// <param name="rows">The rows.</param>
-        /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row>      rows,
+                                                   AsyncEnumerator<Row>.Yield yield,
+                                                   CancellationToken          cancellationToken = default)
         {
             for (int i = 0; i < expectedCount; i++)
             {
@@ -26,7 +27,7 @@ namespace Rhino.Etl.Tests.LoadTest
                 row["id"] = i;
                 row["name"] = "ayende #" + i;
                 row["email"] = "ayende" + i + "@example.org";
-                yield return row;
+                await @yield.ReturnAsync(row);
             }
         }
     }

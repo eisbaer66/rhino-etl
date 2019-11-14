@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests.Dsl
 {
     using System;
@@ -22,14 +24,14 @@ namespace Rhino.Etl.Tests.Dsl
 
 
         [Fact]
-        public void CanPerformAggregationFromDsl()
+        public async Task CanPerformAggregationFromDsl()
         {
             EtlProcess process = CreateDslInstance("Dsl/Aggregate.boo");
             process.Register(new GenericEnumerableOperation(rows));
             ResultsToList operation = new ResultsToList();
             process.RegisterLast(operation);
-            process.Execute();
-            Assert.Equal(1, operation.Results.Count);
+            await process.Execute();
+            Assert.Single(operation.Results);
             Assert.Equal("milk, sugar, coffee", operation.Results[0]["result"]);
         }
     }

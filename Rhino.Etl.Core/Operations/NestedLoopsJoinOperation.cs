@@ -1,3 +1,6 @@
+using System.Threading;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Operations
 {
     using Enumerables;
@@ -38,54 +41,60 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">Rows in pipeline. These are only used if a left part of the join was not specified.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            PrepareForJoin();
+            return new AsyncEnumerable<Row>(async yield => {
+                PrepareForJoin();
 
-            Dictionary<Row, object> matchedRightRows = new Dictionary<Row, object>();
-            CachingEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
-                new EventRaisingEnumerator(right, right.Execute(null))
-                );
-            IEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows);
-            foreach (Row leftRow in new EventRaisingEnumerator(left, execute))
-            {
-                bool leftNeedOuterJoin = true;
-                currentLeftRow = leftRow;
-                foreach (Row rightRow in rightEnumerable)
-                {
-                    currentRightRow = rightRow;
-                    if (MatchJoinCondition(leftRow, rightRow))
-                    {
-                        leftNeedOuterJoin = false;
-                        matchedRightRows[rightRow] = null;
-                        yield return MergeRows(leftRow, rightRow);
-                    }
-                }
-                if (leftNeedOuterJoin)
-                {
-                    Row emptyRow = new Row();
-                    emptyRow[IsEmptyRowMarker] = IsEmptyRowMarker;
-                    currentRightRow = emptyRow;
-                    if (MatchJoinCondition(leftRow, emptyRow))
-                        yield return MergeRows(leftRow, emptyRow);
-                    else
-                        LeftOrphanRow(leftRow);
-                }
-            }
-            foreach (Row rightRow in rightEnumerable)
-            {
-                if (matchedRightRows.ContainsKey(rightRow))
-                    continue;
-                currentRightRow = rightRow;
-                Row emptyRow = new Row();
-                emptyRow[IsEmptyRowMarker] = IsEmptyRowMarker;
-                currentLeftRow = emptyRow;
-                if (MatchJoinCondition(emptyRow, rightRow))
-                    yield return MergeRows(emptyRow, rightRow);
-                else
-                    RightOrphanRow(rightRow);
-            }
+                Dictionary<Row, object> matchedRightRows = new Dictionary<Row, object>();
+                CachingEnumerable<Row> rightEnumerable = new CachingEnumerable<Row>(
+                    new EventRaisingEnumerator(right, right.Execute(null, cancellationToken)), cancellationToken);
+                IAsyncEnumerable<Row> execute = left.Execute(leftRegistered ? null : rows, cancellationToken);
+                await new EventRaisingEnumerator(left, execute)
+                    .ForEachAsync(async leftRow =>
+                                  {
+                                      bool leftNeedOuterJoin = true;
+                                      currentLeftRow = leftRow;
+                                      await rightEnumerable.ForEachAsync(async rightRow =>
+                                                                         {
+                                                                             currentRightRow = rightRow;
+                                                                             if (MatchJoinCondition(leftRow, rightRow))
+                                                                             {
+                                                                                 leftNeedOuterJoin          = false;
+                                                                                 matchedRightRows[rightRow] = null;
+                                                                                 await yield
+                                                                                     .ReturnAsync(MergeRows(leftRow,
+                                                                                                            rightRow));
+                                                                             }
+                                                                         }, cancellationToken);
+
+                                      if (leftNeedOuterJoin)
+                                      {
+                                          Row emptyRow = new Row();
+                                          emptyRow[IsEmptyRowMarker] = IsEmptyRowMarker;
+                                          currentRightRow            = emptyRow;
+                                          if (MatchJoinCondition(leftRow, emptyRow))
+                                              await yield.ReturnAsync(MergeRows(leftRow, emptyRow));
+                                          else
+                                              LeftOrphanRow(leftRow);
+                                      }
+                                  }, cancellationToken);
+                await rightEnumerable.ForEachAsync(async rightRow =>
+                                                   {
+                                                       if (matchedRightRows.ContainsKey(rightRow))
+                                                           return;
+                                                       currentRightRow = rightRow;
+                                                       Row emptyRow = new Row();
+                                                       emptyRow[IsEmptyRowMarker] = IsEmptyRowMarker;
+                                                       currentLeftRow             = emptyRow;
+                                                       if (MatchJoinCondition(emptyRow, rightRow))
+                                                           await yield.ReturnAsync(MergeRows(emptyRow, rightRow));
+                                                       else
+                                                           RightOrphanRow(rightRow);
+                                                   }, cancellationToken);
+            });
         }
 
         /// <summary>

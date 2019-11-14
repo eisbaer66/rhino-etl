@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Data.Common;
 
 namespace Rhino.Etl.Core.Operations
 {
@@ -32,7 +33,7 @@ namespace Rhino.Etl.Core.Operations
         /// <summary>
         /// The current command
         /// </summary>
-        protected IDbCommand currentCommand;
+        protected DbCommand currentCommand;
 
         /// <summary>
         /// Adds the parameter to the current command

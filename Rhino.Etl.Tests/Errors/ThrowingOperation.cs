@@ -1,3 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.Errors
 {
     using System;
@@ -6,7 +10,7 @@ namespace Rhino.Etl.Tests.Errors
     using Core;
     using Core.Operations;
 
-    public class ThrowingOperation : AbstractOperation
+    public class ThrowingOperation : AbstractYieldOperation
     {
         private readonly int rowsAfterWhichToThrow = new Random().Next(1, 6);
 
@@ -15,13 +19,15 @@ namespace Rhino.Etl.Tests.Errors
             get { return rowsAfterWhichToThrow; }
         }
 
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteYield(IAsyncEnumerable<Row>      rows,
+                                                   AsyncEnumerator<Row>.Yield yield,
+                                                   CancellationToken          cancellationToken = default)
         {
             for (int i = 0; i < RowsAfterWhichToThrow; i++)
             {
                 Row row = new Row();
                 row["id"] = i;
-                yield return row;
+                await yield.ReturnAsync(row);
             }
             throw new InvalidDataException("problem");
         }

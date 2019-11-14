@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using Rhino.Etl.Core;
 using Rhino.Etl.Core.Operations;
 using Rhino.Mocks;
@@ -84,7 +85,7 @@ namespace Rhino.Etl.Tests.Branches
                 op.VerifyAllExpectations();
 
             var    handlerInfos = typeof(AbstractOperation).GetField("OnRowProcessed",    BindingFlags.Static    | BindingFlags.Instance    | BindingFlags.NonPublic);
-            Assert.Equal(1,    ((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList().Length);
+            Assert.Single(((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList());
         }
 
         [Fact]
@@ -108,13 +109,13 @@ namespace Rhino.Etl.Tests.Branches
                 op.VerifyAllExpectations();
 
             var    handlerInfos = typeof(AbstractOperation).GetField("OnFinishedProcessing", BindingFlags.Static |    BindingFlags.Instance |    BindingFlags.NonPublic);
-            Assert.Equal(1,    ((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList().Length);
+            Assert.Single(((Delegate)(handlerInfos.GetValue(branching))).GetInvocationList());
         }
     }
 
     public class TestAbstractBranchingOperation    : AbstractBranchingOperation
     {
-        public override    IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

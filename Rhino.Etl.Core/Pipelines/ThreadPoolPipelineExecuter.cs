@@ -1,3 +1,6 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Pipelines
 {
     using System;
@@ -11,37 +14,41 @@ namespace Rhino.Etl.Core.Pipelines
     /// </summary>
     public class ThreadPoolPipelineExecuter : AbstractPipelineExecuter
     {
-       /// <summary>
+        /// <summary>
         /// Add a decorator to the enumerable for additional processing
         /// </summary>
         /// <param name="operation">The operation.</param>
         /// <param name="enumerator">The enumerator.</param>
-        protected override IEnumerable<Row> DecorateEnumerableForExecution(IOperation operation, IEnumerable<Row> enumerator)
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        protected override AsyncEnumerableTask<Row> DecorateEnumerableForExecution(
+            IOperation            operation,
+            IAsyncEnumerable<Row> enumerator,
+            CancellationToken     cancellationToken = default)
         {
             ThreadSafeEnumerator<Row> threadedEnumerator = new ThreadSafeEnumerator<Row>();
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                try
-                {
-                    foreach (Row t in new EventRaisingEnumerator(operation, enumerator))
-                    {
-                        threadedEnumerator.AddItem(t);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Error(e, "Failed to execute operation {0}", operation);
-                    threadedEnumerator.MarkAsFinished();
-#if DEBUG
-                    throw e;
-#endif
-                }
-                finally
-                {
-                    threadedEnumerator.MarkAsFinished();
-                }
-            });
-            return threadedEnumerator;
+            Task task = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        IAsyncEnumerable<Row> eventRaisingEnumerator = new EventRaisingEnumerator(operation, enumerator);
+                                        await eventRaisingEnumerator
+                                            .ForEachAsync(async t => { await threadedEnumerator.AddItem(t); },
+                                                          cancellationToken: cancellationToken);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Error(e, "Failed to execute operation {0}", new Tuple<string, object>("Operation", operation));
+                                    }
+                                    finally
+                                    {
+                                        await threadedEnumerator.MarkAsFinished();
+                                    }
+                                }, cancellationToken);
+            return new AsyncEnumerableTask<Row>
+                   {
+                       Enumerable = threadedEnumerator,
+                       Task = task,
+                   };
         }
     }
 }

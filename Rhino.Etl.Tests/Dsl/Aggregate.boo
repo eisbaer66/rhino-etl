@@ -9,7 +9,7 @@ aggregate join_product_names:
         aggregate.names.Add(row.name)
     
     terminate:
-        aggregate.result = string.Join(", ", aggregate.names.ToArray(string))
+        aggregate.result = aggregate.names.Join(", ")
         
 process aggregate_names:
     # we get the products from the unit test

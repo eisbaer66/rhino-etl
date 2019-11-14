@@ -1,4 +1,6 @@
-﻿using Rhino.Etl.Core.Infrastructure;
+﻿using System.Data.Common;
+using System.Threading.Tasks;
+using Rhino.Etl.Core.Infrastructure;
 using Xunit;
 
 namespace Rhino.Etl.Tests.Dsl
@@ -10,25 +12,29 @@ namespace Rhino.Etl.Tests.Dsl
     public class InputTimeoutFixture : BaseUserToPeopleTest
     {
         [Fact]
-        public void CanCompile()
+        public async Task CanCompile()
         {
+            await SetupTables();
+
             using (EtlProcess process = CreateDslInstance("Dsl/InputTimeout.boo"))
                 Assert.NotNull(process);
         }
 
         [Fact]
-        public void CanCopyTableWithTimeout()
+        public async Task CanCopyTableWithTimeout()
         {
+            await SetupTables();
+
             using (EtlProcess process = CreateDslInstance("Dsl/InputTimeout.boo"))
-                process.Execute();
+                await process.Execute();
             
-            List<string> names = Use.Transaction<List<string>>("test", delegate(IDbCommand cmd)
+            List<string> names = await Database.Transaction<List<string>>("test", async delegate(DbCommand cmd)
             {
                 List<string> tuples = new List<string>();
                 cmd.CommandText = "SELECT firstname from people order by userid";
-                using (IDataReader reader = cmd.ExecuteReader())
+                using (DbDataReader reader = await cmd.ExecuteReaderAsync())
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         tuples.Add(reader.GetString(0));
                     }

@@ -1,18 +1,19 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.UsingDAL
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class SaveToDal : AbstractOperation
+    public class SaveToDal : AbstractProcessingOperation
     {
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield @yield)
         {
-            foreach (Row row in rows)
-            {
-                MySimpleDal.Save(row.ToObject<User>());
-            }
-            yield break;
+            MySimpleDal.Save(row.ToObject<User>());
+
+            return Task.CompletedTask;
         }
     }
 }

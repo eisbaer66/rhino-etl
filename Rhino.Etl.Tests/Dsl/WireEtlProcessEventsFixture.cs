@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests.Dsl
 {
     using System;
@@ -21,15 +23,15 @@ namespace Rhino.Etl.Tests.Dsl
         }
 
         [Fact]
-        public void CheckIfOnRowProcessedEventWasWired()
+        public async Task CheckIfOnRowProcessedEventWasWired()
         {
             using (var process = CreateDslInstance("Dsl/WireRowProcessedEvent.boo"))
             {
                 process.Register(new GenericEnumerableOperation(rows));
                 ResultsToList operation = new ResultsToList();
                 process.RegisterLast(operation);
-                process.Execute();
-                Assert.Equal(1, operation.Results.Count);
+                await process.Execute();
+                Assert.Single(operation.Results);
                 Assert.Equal("chocolate, sugar, coffee", operation.Results[0]["result"]);
             }
         }
@@ -42,15 +44,15 @@ namespace Rhino.Etl.Tests.Dsl
         }
 
         [Fact]
-        public void CheckIfOnFinishedProcessingEventWasWired()
+        public async Task CheckIfOnFinishedProcessingEventWasWired()
         {
             using (var process = CreateDslInstance("Dsl/WireOnFinishedProcessingEvent.boo"))
             {
                 process.Register(new GenericEnumerableOperation(rows));
                 ResultsToList operation = new ResultsToList();
                 process.RegisterLast(operation);
-                process.Execute();
-                Assert.Equal(1, operation.Results.Count);
+                await process.Execute();
+                Assert.Single(operation.Results);
                 Assert.True(File.Exists(@"OnFinishedProcessing.wired"));
 
                 File.Delete(@"OnFinishedProcessing.wired");

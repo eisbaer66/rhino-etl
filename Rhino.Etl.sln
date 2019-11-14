@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29411.108
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Core", "Rhino.Etl.Core\Rhino.Etl.Core.csproj", "{DC42946E-5972-411C-A061-F2932E49C31F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Tests", "Rhino.Etl.Tests\Rhino.Etl.Tests.csproj", "{A1519C4F-3C25-4484-B3D2-2266C133754E}"
@@ -8,6 +10,21 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Dsl", "Rhino.Etl.Dsl\Rhino.Etl.Dsl.csproj", "{D087E051-C099-468D-A3E7-4567DBBDFE69}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Cmd", "Rhino.Etl.Cmd\Rhino.Etl.Cmd.csproj", "{AAD5286D-943E-472A-A861-8C6F155C8712}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.Bootstrap", "Rhino.Etl.Bootstrap\Rhino.Etl.Bootstrap.csproj", "{0B6A574C-F369-4695-9306-F1A01C59FC89}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhino.Etl.ExternalOperations", "Rhino.Etl.ExternalOperations\Rhino.Etl.ExternalOperations.csproj", "{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "publish", "publish", "{B5595862-0A48-4C25-AEEF-AB3E917AD7B4}"
+	ProjectSection(SolutionItems) = preProject
+		acknowledgements.txt = acknowledgements.txt
+		ayende-open-source.snk = ayende-open-source.snk
+		default.ps1 = default.ps1
+		How to build.txt = How to build.txt
+		license.txt = license.txt
+		README.md = README.md
+		Rhino.Etl.nuspec = Rhino.Etl.nuspec
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,8 +48,19 @@ Global
 		{AAD5286D-943E-472A-A861-8C6F155C8712}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AAD5286D-943E-472A-A861-8C6F155C8712}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AAD5286D-943E-472A-A861-8C6F155C8712}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B6A574C-F369-4695-9306-F1A01C59FC89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA8F9C51-5E8C-4CF9-9D30-3DCB780BADE1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0AAF714F-1EB5-4596-B8FD-E7FD0623287E}
 	EndGlobalSection
 EndGlobal

@@ -1,3 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Core.Enumerables
 {
     using System.Collections;
@@ -10,19 +14,20 @@ namespace Rhino.Etl.Core.Enumerables
     /// the results after the first iteration.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class CachingEnumerable<T> : IEnumerable<T>, IEnumerator<T>
+    public class CachingEnumerable<T> : IAsyncEnumerable<T>, IAsyncEnumerator<T>
     {
         private bool? isFirstTime = null;
-        private IEnumerator<T> internalEnumerator;
+        private IAsyncEnumerator<T> internalEnumerator;
         private readonly LinkedList<T> cache = new LinkedList<T>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CachingEnumerable&lt;T&gt;"/> class.
         /// </summary>
         /// <param name="inner">The inner.</param>
-        public CachingEnumerable(IEnumerable<T> inner)
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> that may be used to cancel the asynchronous iteration.</param>
+        public CachingEnumerable(IAsyncEnumerable<T> inner, CancellationToken cancellationToken = default)
         {
-            internalEnumerator = inner.GetEnumerator();
+            internalEnumerator = inner.GetAsyncEnumerator(cancellationToken);
         }
 
         ///<summary>
@@ -33,7 +38,7 @@ namespace Rhino.Etl.Core.Enumerables
         ///A <see cref="T:System.Collections.Generic.IEnumerator`1"></see> that can be used to iterate through the collection.
         ///</returns>
         ///<filterpriority>1</filterpriority>
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
+        IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken cancellationToken)
         {
             if(isFirstTime==null)
             {
@@ -42,28 +47,15 @@ namespace Rhino.Etl.Core.Enumerables
             else if(isFirstTime.Value)
             {
                 isFirstTime = false;
-                internalEnumerator.Dispose();
-                internalEnumerator = cache.GetEnumerator();
+                internalEnumerator.DisposeAsync();
+                internalEnumerator = cache.GetAsyncEnumerator();
             }
             else 
             {
-                internalEnumerator = cache.GetEnumerator();
+                internalEnumerator = cache.GetAsyncEnumerator();
             }
 
             return this;
-        }
-
-        ///<summary>
-        ///Returns an enumerator that iterates through a collection.
-        ///</summary>
-        ///
-        ///<returns>
-        ///An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.
-        ///</returns>
-        ///<filterpriority>2</filterpriority>
-        public IEnumerator GetEnumerator()
-        {
-            return ((IEnumerable<T>)this).GetEnumerator();
         }
 
         ///<summary>
@@ -74,7 +66,7 @@ namespace Rhino.Etl.Core.Enumerables
         ///The element in the collection at the current position of the enumerator.
         ///</returns>
         ///
-        T IEnumerator<T>.Current
+        T IAsyncEnumerator<T>.Current
         {
             get { return internalEnumerator.Current; }
         }
@@ -83,9 +75,9 @@ namespace Rhino.Etl.Core.Enumerables
         ///Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         ///</summary>
         ///<filterpriority>2</filterpriority>
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            internalEnumerator.Dispose();
+            await internalEnumerator.DisposeAsync();
         }
 
         ///<summary>
@@ -97,22 +89,12 @@ namespace Rhino.Etl.Core.Enumerables
         ///</returns>
         ///
         ///<exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception><filterpriority>2</filterpriority>
-        public bool MoveNext()
+        public async ValueTask<bool> MoveNextAsync()
         {
-            bool result = internalEnumerator.MoveNext();
+            bool result = await internalEnumerator.MoveNextAsync();
             if (result && isFirstTime.Value)
                 cache.AddLast(internalEnumerator.Current);
             return result;
-        }
-
-        ///<summary>
-        ///Sets the enumerator to its initial position, which is before the first element in the collection.
-        ///</summary>
-        ///
-        ///<exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created. </exception><filterpriority>2</filterpriority>
-        public void Reset()
-        {
-            internalEnumerator.Reset();
         }
 
         ///<summary>

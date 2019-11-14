@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests
@@ -9,9 +11,9 @@ namespace Rhino.Etl.Tests
 
     public class BaseUserToPeopleTest : BaseDslTest
     {
-        public BaseUserToPeopleTest()
+        public async Task SetupTables()
         {
-            Use.Transaction("test", delegate(IDbCommand cmd)
+            await Database.Transaction("test", async delegate(DbCommand cmd)
             {
                 cmd.CommandText =
                     @"
@@ -51,7 +53,7 @@ if object_id('People') is not null
     drop table People;
 create table People ( id int identity, userid int not null, firstname nvarchar(255) not null, lastname nvarchar(255) not null, email nvarchar(255) not null);
 ";
-                cmd.ExecuteNonQuery();
+                await cmd.ExecuteNonQueryAsync();
             });
         }
 

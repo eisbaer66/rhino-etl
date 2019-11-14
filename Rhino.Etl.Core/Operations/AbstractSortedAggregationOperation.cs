@@ -1,4 +1,7 @@
-﻿namespace Rhino.Etl.Core.Operations
+﻿using System.Threading;
+using Dasync.Collections;
+
+namespace Rhino.Etl.Core.Operations
 {
     using System.Collections.Generic;
 
@@ -13,30 +16,33 @@
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The pre-sorted rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            ObjectArrayKeys previousKey = null;
-            var aggregate = new Row();
-            var groupBy = GetColumnsToGroupBy();
+            return new AsyncEnumerable<Row>(async yield => {
+                ObjectArrayKeys previousKey = null;
+                var aggregate = new Row();
+                var groupBy = GetColumnsToGroupBy();
 
-            foreach (var row in rows)
-            {
-                var key = row.CreateKey(groupBy);
-
-                if (previousKey != null && !previousKey.Equals(key))
+                await rows.ForEachAsync(async row =>
                 {
-                    FinishAggregation(aggregate);
-                    yield return aggregate;
-                    aggregate = new Row();
-                }
+                    var key = row.CreateKey(groupBy);
 
-                Accumulate(row, aggregate);
-                previousKey = key;
-            }
+                    if (previousKey != null && !previousKey.Equals(key))
+                    {
+                        FinishAggregation(aggregate);
+                        await yield.ReturnAsync(aggregate);
+                        aggregate = new Row();
+                    }
 
-            FinishAggregation(aggregate);
-            yield return aggregate;
+                    Accumulate(row, aggregate);
+                    previousKey = key;
+                }, cancellationToken);
+
+                FinishAggregation(aggregate);
+                await yield.ReturnAsync(aggregate);
+            });
         }
     }
 }

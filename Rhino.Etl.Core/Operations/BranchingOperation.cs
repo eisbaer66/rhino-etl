@@ -1,5 +1,8 @@
 using Rhino.Etl.Core.Enumerables;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
 
 namespace Rhino.Etl.Core.Operations
 {
@@ -16,26 +19,27 @@ namespace Rhino.Etl.Core.Operations
         /// to all its child operations
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            var copiedRows = new CachingEnumerable<Row>(rows);
+            return new AsyncEnumerable<Row>(async yield => {
+                var copiedRows = new CachingEnumerable<Row>(rows, cancellationToken);
+                
+                foreach (IOperation operation in Operations)
+                {
+                    var cloned = copiedRows.Select(r => r.Clone());
 
-            foreach (IOperation operation in Operations)
-            {
-                var cloned = copiedRows.Select(r => r.Clone());
+                    IAsyncEnumerable<Row> enumerable = operation.Execute(cloned, cancellationToken);
 
-                IEnumerable<Row> enumerable = operation.Execute(cloned);
+                    if (enumerable == null)
+                        continue;
 
-                if (enumerable == null)
-                    continue;
-
-                IEnumerator<Row> enumerator = enumerable.GetEnumerator();
-#pragma warning disable 642
-                while (enumerator.MoveNext()) ;
-#pragma warning restore 642
-            }
-            yield break;
+                    IAsyncEnumerator<Row> enumerator = enumerable.GetAsyncEnumerator(cancellationToken);
+                    while (await enumerator.MoveNextAsync()) { }
+                }
+                yield.Break();
+            });
         }
 
         /// <summary>

@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Dasync.Collections;
+using Nito.AsyncEx;
 using Rhino.Etl.Core.Enumerables;
 
 namespace Rhino.Etl.Core.Operations
@@ -14,48 +17,53 @@ namespace Rhino.Etl.Core.Operations
         /// Executes this operation
         /// </summary>
         /// <param name="rows">The rows.</param>
+        /// <param name="cancellationToken">A CancellationToken to stop execution</param>
         /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        public override IAsyncEnumerable<Row> Execute(IAsyncEnumerable<Row> rows, CancellationToken cancellationToken = default)
         {
-            var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows);
+            return new AsyncEnumerable<Row>(yield => {
+                var input = new GatedThreadSafeEnumerator<Row>(Operations.Count, rows, cancellationToken);
 
-            var sync = new object();
+                AsyncMonitor monitor = new AsyncMonitor();
 
-            foreach (var operation in Operations)
-            {
-                var clone = input.Select(r => r.Clone());
-                var result = operation.Execute(clone);
+                Task[] tasks = Operations
+                            .Select(async operation => 
+                                    {
+                                        var clone  = input.Select(r => r.Clone());
+                                        var result = operation.Execute(clone, cancellationToken);
 
-                if (result == null)
-                {
-                    input.Dispose();
-                    continue;
-                }
+                                        if (result == null)
+                                        {
+                                            await input.DisposeAsync();
+                                            return null;
+                                        }
 
-                var enumerator = result.GetEnumerator();
+                                        var enumerator = result.GetAsyncEnumerator(cancellationToken);
 
-                ThreadPool.QueueUserWorkItem(delegate
-                                             {
-                                                 try
-                                                 {
-                                                     while (enumerator.MoveNext()) ;
-                                                 }
-                                                 finally
-                                                 {
-                                                     lock (sync)
-                                                     {
-                                                        enumerator.Dispose();
-                                                        Monitor.Pulse(sync);
-                                                     }
-                                                 }
-                                             });
-            }
+                                        return Task.Run(async () =>
+                                                        {
+                                                            try
+                                                            {
+                                                                while (await enumerator.MoveNextAsync()) ;
+                                                            }
+                                                            finally
+                                                            {
+                                                                using (await monitor.EnterAsync(cancellationToken))
+                                                                {
+                                                                    await enumerator.DisposeAsync();
+                                                                    monitor.Pulse();
+                                                                }
+                                                            }
+                                                        }, cancellationToken);
+                                    })
+                            .Where(t => t?.Result != null)
+                            .Select(t => t.Result)
+                            .ToArray();
 
-            lock (sync)
-                while (input.ConsumersLeft > 0)
-                    Monitor.Wait(sync);
+                Task.WaitAll(tasks);
 
-            yield break;
+                return Task.CompletedTask;
+            });
         }
     }
 }

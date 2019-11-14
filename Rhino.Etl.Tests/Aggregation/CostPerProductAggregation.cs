@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Rhino.Etl.Tests.Aggregation
 {
     using Core;

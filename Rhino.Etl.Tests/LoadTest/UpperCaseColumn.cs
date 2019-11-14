@@ -1,10 +1,13 @@
+using System.Threading.Tasks;
+using Dasync.Collections;
+
 namespace Rhino.Etl.Tests.LoadTest
 {
     using System.Collections.Generic;
     using Core;
     using Rhino.Etl.Core.Operations;
 
-    public class UpperCaseColumn : AbstractOperation
+    public class UpperCaseColumn : AbstractProcessingOperation
     {
         private readonly string column;
 
@@ -12,20 +15,11 @@ namespace Rhino.Etl.Tests.LoadTest
         {
             this.column = column;
         }
-
-        /// <summary>
-        /// Executes this operation
-        /// </summary>
-        /// <param name="rows">The rows.</param>
-        /// <returns></returns>
-        public override IEnumerable<Row> Execute(IEnumerable<Row> rows)
+        protected override async Task ExecuteAsync(Row row, AsyncEnumerator<Row>.Yield @yield)
         {
-            foreach (Row row in rows)
-            {
                 row[column] = ((string) row[column] ?? "").ToUpper();
                 row["testMsg"] = "UpperCased";
-                yield return row;
-            }
+                await yield.ReturnAsync(row);
         }
     }
 }

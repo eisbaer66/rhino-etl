@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Threading.Tasks;
 using Rhino.Etl.Core.Infrastructure;
 
 namespace Rhino.Etl.Tests.LoadTest
@@ -16,64 +18,72 @@ namespace Rhino.Etl.Tests.LoadTest
         private const int expectedCount = 5000;
         private int currentUserCount;
 
-        public LoadTestFixture()
+        private async Task AssertUpdatedAllRows()
         {
-            currentUserCount = GetUserCount("1 = 1");
-            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
-                push.Execute();
-        }
-
-        public void AssertUpdatedAllRows()
-        {
-            Assert.Equal(expectedCount + currentUserCount, GetUserCount("testMsg is not null"));
+            Assert.Equal(expectedCount + currentUserCount, await GetUserCount("testMsg is not null"));
 
         }
 
-        private static int GetUserCount(string where)
+        private static async Task<int> GetUserCount(string where)
         {
-            return Use.Transaction<int>("test", delegate(IDbCommand command)
+            return await Database.Transaction("test", async delegate(DbCommand command)
             {
                 command.CommandText = "select count(*) from users where " + where;
-                return (int)command.ExecuteScalar();
+                return (int)await command.ExecuteScalarAsync();
             });
         }
 
         [Fact]
-        public void CanUpdateAllUsersToUpperCase()
+        public async Task CanUpdateAllUsersToUpperCase()
         {
+            await SetupTables();
+            currentUserCount = await GetUserCount("1 = 1");
+
+            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
+                await push.Execute();
             using (UpperCaseUserNames update = new UpperCaseUserNames())
             {
                 update.RegisterLast(new UpdateUserNames());
-                update.Execute();
+                await update.Execute();
             }
-            AssertUpdatedAllRows();
+            await AssertUpdatedAllRows();
         }
 
         [Fact]
-        public void CanBatchUpdateAllUsersToUpperCase()
+        public async Task CanBatchUpdateAllUsersToUpperCase()
         {
+            await SetupTables();
+            currentUserCount = await GetUserCount("1 = 1");
+
+            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
+                await push.Execute();
             using (UpperCaseUserNames update = new UpperCaseUserNames())
             {
                 update.RegisterLast(new BatchUpdateUserNames());
-                update.Execute();
+                await update.Execute();
             }
 
-            AssertUpdatedAllRows();
+            await AssertUpdatedAllRows();
         }
 
         [Fact]
-        public void BulkInsertUpdatedRows()
+        public async Task BulkInsertUpdatedRows()
         {
-            if(expectedCount != GetUserCount("1 = 1"))
+            await SetupTables();
+            currentUserCount = await GetUserCount("1 = 1");
+
+            using (PushDataToDatabase push = new PushDataToDatabase(expectedCount))
+                await push.Execute();
+            if (expectedCount != await GetUserCount("1 = 1"))
                 return;//ignoring test
 
             using (UpperCaseUserNames update = new UpperCaseUserNames())
             {
                 update.RegisterLast(new BulkInsertUsers());
-                update.Execute();
+                await update.Execute();
             }
 
-            AssertUpdatedAllRows();
+            await AssertUpdatedAllRows();
         }
     }
 }

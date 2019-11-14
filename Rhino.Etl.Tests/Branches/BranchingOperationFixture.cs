@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Rhino.Etl.Tests.Branches
@@ -12,24 +14,28 @@ namespace Rhino.Etl.Tests.Branches
     public class BranchingOperationFixture
     {
         [Fact]
-        public void TheOldBranchingOperationDoesNotReportErrors()
+        public async Task TheNewBranchingOperationReportsErrors()
         {
-            using (var process = new BranchingOperationProcess<BranchingOperationWithBug>())
+            using (var process = new BranchingOperationProcess<BranchingOperation>())
             {
-                process.Execute();
+                await process.Execute();
                 var errors = process.GetAllErrors().Count();
-                Assert.Equal(0, errors);
+                Assert.NotEqual(0, errors);
             }
         }
 
         [Fact]
-        public void TheNewBranchingOperationReportsErrors()
+        public async Task CanRunInParallel()
         {
-            using (var process = new BranchingOperationProcess<BranchingOperation>())
+            StringBuilder stringBuilder = new StringBuilder();
+
+            using (var process = new BranchingOperationToStringProcess(stringBuilder))
             {
-                process.Execute();
-                var errors = process.GetAllErrors().Count();
-                Assert.NotEqual(0, errors);
+                await process.Execute();
+
+                string s = stringBuilder.ToString();
+                Assert.NotEqual(string.Empty, s);
+                Assert.NotEqual("add add add add subtract subtract subtract subtract ", s);
             }
         }
     }
